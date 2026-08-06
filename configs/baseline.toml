@@ -1,0 +1,6 @@
+[baseline]
+# Add verbs that matter in a target domain without changing package code.
+additional_verbs = ["triage", "synchronize"]
+
+# The score is a ranking heuristic, not a calibrated probability.
+min_confidence = 0.0
