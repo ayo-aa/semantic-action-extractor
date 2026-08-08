@@ -213,10 +213,9 @@ The research datasets do not establish performance on a company’s tickets, ema
 - QA-SRL question-equivalence metrics are imperfect and require both automatic and targeted qualitative analysis.
 - The action schema does not represent assignment, commitment, due dates, completion state, or workflow execution.
 
-## Data, provenance, and license
+## Data, sources, and license
 
 - [DATA_USAGE.md](DATA_USAGE.md) records the current data boundaries.
-- [PROVENANCE.md](PROVENANCE.md) distinguishes prior research, the predecessor notebook, and this implementation.
 - [MODEL_CARD.md](MODEL_CARD.md) documents the deterministic baseline.
 - [PROJECT_SPEC.md](PROJECT_SPEC.md) contains the complete experimental contract.
 - [LICENSE](LICENSE) applies to the repository’s original code, not automatically to third-party datasets or checkpoints.
