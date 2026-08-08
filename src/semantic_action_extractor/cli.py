@@ -63,7 +63,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         parser.error("input text cannot be empty")
 
     try:
-        config = BaselineConfig.from_toml(args.config) if args.config else BaselineConfig()
+        config = (
+            BaselineConfig.from_toml(args.config)
+            if args.config
+            else BaselineConfig()
+        )
     except (OSError, ValueError, tomllib.TOMLDecodeError) as error:
         parser.error(f"could not load configuration: {error}")
 

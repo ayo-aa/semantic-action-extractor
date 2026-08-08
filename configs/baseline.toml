@@ -3,4 +3,4 @@
 additional_verbs = ["triage", "synchronize"]
 
 # The score is a ranking heuristic, not a calibrated probability.
-min_confidence = 0.0
+min_score = 0.0
