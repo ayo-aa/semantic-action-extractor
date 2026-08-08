@@ -2,11 +2,11 @@
 
 ## Status
 
-**Release audit:** Completed on 2026-08-06  
-**Training release:** QA-SRL Bank 2.1, the official minor-fix release of Bank 2.0  
-**Primary evaluation release:** QA-SRL Gold Standard  
-**Adapter:** Not implemented  
-**Repository data:** None  
+**Release audit:** Completed on 2026-08-06
+**Training release:** QA-SRL Bank 2.1, the official minor-fix release of Bank 2.0
+**Primary evaluation release:** QA-SRL Gold Standard
+**Adapter:** Not implemented
+**Repository data:** None
 **Redistribution decision:** Raw and processed records remain outside Git; checkpoint publication remains unresolved
 
 ## Purpose

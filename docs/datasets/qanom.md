@@ -2,10 +2,10 @@
 
 ## Status
 
-**Release audit:** Completed on 2026-08-06  
-**Dataset revision:** Archive distributed by QANom repository revision `2bce70e8a39b40157ba97f38e1a8ae7619b30162`  
-**Adapter:** Not implemented  
-**Repository data:** None  
+**Release audit:** Completed on 2026-08-06
+**Dataset revision:** Archive distributed by QANom repository revision `2bce70e8a39b40157ba97f38e1a8ae7619b30162`
+**Adapter:** Not implemented
+**Repository data:** None
 **Redistribution decision:** Raw and processed records remain outside Git; checkpoint publication remains unresolved
 
 ## Purpose
