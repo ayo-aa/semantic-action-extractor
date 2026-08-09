@@ -1,4 +1,4 @@
-"""Lossless interchange schema for QA-SRL and QANom research annotations.
+"""Evidence-preserving schema for QA-SRL and QANom research annotations.
 
 This module intentionally stays separate from the compact inference schema.  It
 preserves source boundaries, dataset lineage, alternative answers, and raw
@@ -16,7 +16,7 @@ from typing import Any, Iterable, Mapping, Sequence
 from .schema import PREDICATE_TYPES, TextSpan
 
 
-ANNOTATION_SCHEMA_VERSION = "0.1.0"
+ANNOTATION_SCHEMA_VERSION = "0.2.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -152,7 +152,12 @@ class AnswerAlternative:
 
 @dataclass(frozen=True, slots=True)
 class QuestionJudgment:
-    """One answer source's validity decision and alternative answer groups."""
+    """One source's validity decision and zero or more answer alternatives.
+
+    QA-SRL Bank 2.1 contains one retained annotation marked valid with no answer
+    span.  The interchange layer preserves that upstream evidence instead of
+    silently dropping the judgment or inventing an answer.
+    """
 
     source_id: str
     is_valid: bool
@@ -165,8 +170,15 @@ class QuestionJudgment:
         _require_nonempty(self.source_id, label="question judgment source_id")
         if not isinstance(self.is_valid, bool):
             raise ValueError("question is_valid must be a boolean")
-        if self.is_valid and not self.answers:
-            raise ValueError("a valid question judgment must include an answer")
+        if (
+            self.is_valid
+            and not self.answers
+            and self.metadata.get("upstream_empty_valid_spans") is not True
+        ):
+            raise ValueError(
+                "a valid question judgment without an answer must be marked "
+                "as an upstream_empty_valid_spans anomaly"
+            )
         if not self.is_valid and self.answers:
             raise ValueError("an invalid question judgment cannot include answers")
         _require_unique_ids(
@@ -374,7 +386,12 @@ class EventivityJudgment:
 
 @dataclass(frozen=True, slots=True)
 class PredicateCandidate:
-    """A verbal or nominal predicate candidate and its complete annotations."""
+    """A verbal or nominal predicate candidate and its complete annotations.
+
+    A small number of QANom release rows attach questions to a candidate whose
+    retained eventivity decision is negative. The schema permits that conflict
+    so an adapter can preserve and flag it instead of changing upstream labels.
+    """
 
     candidate_id: str
     span: TokenAlignedSpan
@@ -429,9 +446,11 @@ class PredicateCandidate:
             self.questions
             and self.eventivity_judgments
             and not any(item.is_eventive for item in self.eventivity_judgments)
+            and self.metadata.get("upstream_eventivity_question_conflict") is not True
         ):
             raise ValueError(
-                "a consistently non-eventive candidate cannot have questions"
+                "a non-eventive candidate with questions must be marked as an "
+                "upstream_eventivity_question_conflict anomaly"
             )
         _validate_metadata(self.metadata, label="candidate metadata")
 

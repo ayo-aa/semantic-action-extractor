@@ -2,9 +2,18 @@
 
 ## Current status
 
-No corpus-level extraction result is available. Automated tests verify software behavior only; they do not provide evidence of model quality.
+No corpus-level extraction result is available. Automated tests and full-release preparation checks verify data-pipeline and software behavior only; they do not provide evidence of model quality.
 
-QA-SRL Bank 2.1, QA-SRL Gold Standard, and QANom are the planned research sources. Add measured values only when each result bundle identifies the dataset release, split, scorer mode, predicate source, seed, training allowance, hardware, preprocessing revision, and Git commit.
+QA-SRL Bank 2.1, QA-SRL Gold Standard, and QANom are the selected research sources. Add model values only when each result bundle identifies the dataset release, split, scorer mode, predicate source, consolidation rule, seed, training allowance, hardware, preprocessing revision, and Git commit.
+
+| E1 component | Implementation status | Current evidence | Remaining work |
+| --- | --- | --- | --- |
+| Archive registry, verification, and extraction | Implemented | Pinned checksums, safety fixtures, and live verified archives | None for selected releases |
+| QA-SRL adapter | Implemented | Synthetic fixtures and every release file; documented counts reproduced | Model-facing dataset construction |
+| QANom adapter | Implemented | Synthetic fixtures and all three release splits; documented counts reproduced | Model-facing dataset construction |
+| Manifests, canonical readers, and quarantine | Implemented | Round-trip, atomicity, drift, overlap, and full-corpus checks | Apply to every future training artifact |
+| Consolidation and scorer contracts | Implemented | Boundary, matching, duplicate, role, and serialization fixtures | Model prediction regression and corpus results |
+| Operational-style challenge set | Pending | None | Author, independently annotate, adjudicate, and freeze |
 
 ## Answer to the primary research question
 
@@ -73,7 +82,7 @@ This table prevents candidate-generation and predicate-classification errors fro
 | Size-matched source-domain transfer | TK | TK | TK | TK | Pending |
 | Frozen operational-style set | TK | TK | TK | TK | Pending |
 
-## Calibration and selective review
+## Calibration and confidence–coverage behavior
 
 Predicate and argument confidence are evaluated separately because they answer different questions.
 
@@ -99,7 +108,7 @@ Predicate and argument confidence are evaluated separately because they answer d
 5. Predicate and argument risk–coverage curves.
 6. Quality versus batch-one latency and peak memory.
 
-Figures are added only after their result bundles pass provenance, completeness, and matched-comparison checks.
+Figures are added only after their result bundles pass source-identity, completeness, and matched-comparison checks.
 
 ## Conclusions and negative findings
 

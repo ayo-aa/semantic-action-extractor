@@ -2,11 +2,13 @@
 
 ## Status
 
-**Release audit:** Completed on 2026-08-06
-**Dataset revision:** Archive distributed by QANom repository revision `2bce70e8a39b40157ba97f38e1a8ae7619b30162`
-**Adapter:** Not implemented
-**Repository data:** None
-**Redistribution decision:** Raw and processed records remain outside Git; checkpoint publication remains unresolved
+| Field | Status |
+| --- | --- |
+| Release verification | Completed on 2026-08-06 |
+| Dataset revision | Archive distributed by QANom revision `2bce70e8a39b40157ba97f38e1a8ae7619b30162` |
+| Adapter | Implemented and fixture-tested; all three verified splits processed successfully |
+| Repository data | None |
+| Redistribution decision | Raw and processed records remain outside Git; checkpoint publication remains unresolved |
 
 ## Purpose
 
@@ -30,20 +32,20 @@ The preparation command must verify the archive checksum before extraction. A ch
 
 The following values were computed from the verified CSV files. A candidate is the unique combination of `qasrl_id` and `target_idx`. A question row has a non-empty question field.
 
-| Split | CSV rows | Sentences | Candidate nouns | Positive eventive nominals | Question rows |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Train | 30,644 | 7,114 | 23,060 | 9,226 | 15,895 |
-| Development | 7,660 | 1,557 | 4,661 | 2,616 | 5,577 |
-| Test | 7,023 | 1,517 | 4,461 | 2,401 | 4,886 |
-| **Total** | **45,327** | **10,188** | **32,182** | **14,243** | **26,358** |
+| Split | CSV rows | Sentences | Candidate nouns | Positive eventive nominals | Nonempty question rows | Retained distinct questions |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Train | 30,644 | 7,114 | 23,060 | 9,226 | 15,895 | 15,871 |
+| Development | 7,660 | 1,557 | 4,661 | 2,616 | 5,577 | 5,577 |
+| Test | 7,023 | 1,517 | 4,461 | 2,401 | 4,886 | 4,886 |
+| **Total** | **45,327** | **10,188** | **32,182** | **14,243** | **26,358** | **26,334** |
 
-The training sentences were sampled from the QA-SRL Bank 2.0 training split. Development and test sentences come from the QA-SRL Gold Standard source material. This overlap is useful for paired verbal–nominal analysis but creates a cross-task leakage risk if split identities are discarded.
+The 24-row difference in training comes from exact duplicate question-answer rows. The adapter counts each duplicate and retains one canonical question rather than treating repeated bytes as additional supervision. The training sentences were sampled from the QA-SRL Bank 2.0 training split. Development and test sentences come from the QA-SRL Gold Standard source material. This overlap is useful for paired verbal–nominal analysis but creates a cross-task leakage risk if split identities are discarded.
 
 ## Data representation
 
-The archive contains `annot.train.csv`, `annot.dev.csv`, and `annot.test.csv`. The actual files have 22 fields, so the adapter must follow the parsed header rather than assume that older prose documentation lists every column.
+The archive contains `annot.train.csv`, `annot.dev.csv`, and `annot.test.csv`. All three contain 22 shared semantic fields. Development adds `source_assign_id`; test instead adds an accidental saved-index column named `Unnamed: 0`. The adapter validates each parsed header by name rather than assuming one uniform column count.
 
-The adapter must preserve:
+The implemented adapter preserves:
 
 - `qasrl_id`, sentence text, target token index, and candidate key;
 - the eventive-nominal decision stored upstream as `is_verbal`;
@@ -55,6 +57,8 @@ The adapter must preserve:
 
 Internally, the ambiguous upstream field `is_verbal` is renamed `is_eventive_nominal`. It means that the candidate noun carries eventive or verbal semantics in context; it does not mean that the token itself is grammatically a verb. Token ranges use inclusive-start, exclusive-end boundaries.
 
+Full-release processing records 472 case-normalized noun fields in training, 141 in development, and 114 in test. Development contains 57 retained eventivity/question conflicts and one blank answer string that is reconstructed from its verified token range. Test contains 1,141 nonempty values in the accidental `Unnamed: 0` column; those release-artifact values are discarded while their field and count remain in the manifest.
+
 ## Research split policy
 
 - Preserve the official train, development, and test splits.
@@ -64,7 +68,9 @@ Internally, the ambiguous upstream field `is_verbal` is renamed `is_eventive_nom
 - Report candidate detection separately from argument extraction with a supplied positive predicate.
 - Derive unseen-lemma analysis without moving official test examples into training.
 
-## Scoring audit
+The fixed cross-task comparison finds no direct source-ID or document-ID collision across roles and no development-to-test exact-text overlap. It does find copied evaluation text under different training IDs. The conservative document-level policy excludes 28 of 7,114 QANom training sentences across two affected documents; those documents are part of the same seven-document quarantine applied to QA-SRL training.
+
+## Reference scorer behavior
 
 At revision `2bce70e8a39b40157ba97f38e1a8ae7619b30162`, the reference implementation:
 
@@ -74,10 +80,10 @@ At revision `2bce70e8a39b40157ba97f38e1a8ae7619b30162`, the reference implementa
 - inner-joins gold and predicted predicate identifiers before evaluation;
 - omits argument and role counts when the eventive-nominal decision is wrong.
 
-The last two behaviors can hide the downstream impact of missed, spurious, or misclassified predicates. E1 must therefore provide two named modes:
+The last two behaviors can hide the downstream impact of missed, spurious, or misclassified predicates. The project therefore implements two named modes:
 
-1. **QANom reference:** reproduce the checked-in behavior for comparison with prior work, including the strict `> 0.3` boundary.
-2. **End-to-end:** evaluate the union of gold and predicted candidates and charge predicate-detection failures to downstream argument precision and recall.
+1. **`qanom-reference-v1`:** reproduces the checked-in inner join, strict `> 0.3` boundary, descending-IoU greedy matching keyed by span value, coarse question-role equivalence, grouped-role alignment, and omission of argument and role counts when eventivity differs.
+2. **`primary-end-to-end-v1`:** evaluates the union of gold and predicted candidates, uses inclusive `0.5` overlap and optimal one-to-one matching, and charges candidate and predicate failures to downstream argument precision and recall.
 
 Exact token-span and exact character-offset metrics are reported alongside the overlap score. Every result records the scorer name, revision, threshold, matching algorithm, predicate source, and question-equivalence rule.
 
@@ -89,7 +95,7 @@ The repository will therefore publish:
 
 - download and checksum-verification code;
 - adapters and newly authored synthetic fixtures;
-- preparation manifests, aggregate statistics, and provenance records;
+- preparation manifests, aggregate statistics, and source-lineage records;
 - measured aggregate results when their use is permitted.
 
 It will not publish raw or processed QANom records. A separate review must resolve the dataset, base-model, and derived-weight terms before any trained checkpoint is released.

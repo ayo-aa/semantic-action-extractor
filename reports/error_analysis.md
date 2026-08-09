@@ -44,6 +44,18 @@ This report tracks reproducible error categories rather than isolated anecdotes.
 - duplicated or leaked document;
 - annotation disagreement or ambiguous reference.
 
+## Data preparation
+
+- release header or field-schema drift;
+- invalid token range, source offset, or answer text;
+- exact duplicate question-answer row;
+- valid upstream judgment without an answer span;
+- retained eventivity/question conflict;
+- missing or inconsistent source or document identity;
+- cross-role document, source, exact-text, lineage, or predicate-family overlap;
+- disagreement introduced by the named consolidation rule;
+- tied nominal eventivity judgments.
+
 ## Neural and serialization failures
 
 - word-to-subword alignment error;
@@ -62,7 +74,7 @@ This report tracks reproducible error categories rather than isolated anecdotes.
 - confident but incorrect predicate classification;
 - confident but incorrect answer span;
 - correct answer span with an overconfident wrong role question;
-- underconfident correct prediction removed by selective review;
+- underconfident correct prediction lost at a chosen coverage threshold;
 - calibration drift between verbal and nominal predicates;
 - calibration drift on held-out predicate families or source domains.
 

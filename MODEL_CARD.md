@@ -11,7 +11,7 @@ The term *action* means a linguistic action or event mention. The baseline does 
 ## Version
 
 - Extractor ID: `rule-based-v1`
-- Project version: `0.2.0`
+- Project version: `0.3.0`
 - Schema version: `0.2.0`
 - Training data: none
 - Runtime dependencies: Python standard library only

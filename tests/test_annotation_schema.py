@@ -228,6 +228,72 @@ class AnnotationSchemaTests(unittest.TestCase):
         self.assertEqual(candidate["questions"], [])
         self.assertEqual(record.to_dict()["candidates"][1]["predicate_type"], "verbal")
 
+    def test_preserves_upstream_eventivity_question_conflict(self) -> None:
+        answer = AnswerAlternative(
+            alternative_id="answer",
+            spans=(_aligned("The", 0, 3, 0, 1),),
+        )
+        question = QASRLQuestion(
+            question_id="conflicting-question",
+            slots=QASRLQuestionSlots(
+                wh="what",
+                aux="_",
+                subj="_",
+                verb="past",
+                obj="_",
+                prep="_",
+                obj2="_",
+                verb_prefix="",
+                verb_slot_inflection="Past",
+            ),
+            surface_form="What was approved?",
+            question_sources=("upstream-worker",),
+            judgments=(
+                QuestionJudgment(
+                    source_id="upstream-worker",
+                    is_valid=True,
+                    answers=(answer,),
+                ),
+            ),
+            is_negated=False,
+            is_passive=True,
+        )
+        candidate = PredicateCandidate(
+            candidate_id="conflicting-candidate",
+            span=_aligned("approval", 4, 12, 1, 2),
+            lemma="approval",
+            predicate_type="nominal",
+            related_verbal_form="approve",
+            eventivity_judgments=(
+                EventivityJudgment(
+                    judgment_id="eventivity",
+                    is_eventive=False,
+                ),
+            ),
+            questions=(question,),
+            metadata={"upstream_eventivity_question_conflict": True},
+        )
+
+        self.assertFalse(candidate.eventivity_judgments[0].is_eventive)
+        self.assertEqual(len(candidate.questions), 1)
+        self.assertTrue(candidate.metadata["upstream_eventivity_question_conflict"])
+
+        with self.assertRaisesRegex(ValueError, "must be marked"):
+            PredicateCandidate(
+                candidate_id="unmarked-conflict",
+                span=_aligned("approval", 4, 12, 1, 2),
+                lemma="approval",
+                predicate_type="nominal",
+                related_verbal_form="approve",
+                eventivity_judgments=(
+                    EventivityJudgment(
+                        judgment_id="eventivity",
+                        is_eventive=False,
+                    ),
+                ),
+                questions=(question,),
+            )
+
     def test_qasrl_bank_release_fields_round_trip_without_realizing_slots(self) -> None:
         text = "Ava had been sending invoices."
         tokens = (
@@ -500,6 +566,25 @@ class AnnotationSchemaTests(unittest.TestCase):
                 is_eventive=True,
                 confidence=float("nan"),
                 confidence_type="model_probability",
+            )
+
+    def test_preserves_valid_upstream_judgment_without_an_answer(self) -> None:
+        judgment = QuestionJudgment(
+            source_id="upstream-validator",
+            is_valid=True,
+            answers=(),
+            metadata={"upstream_empty_valid_spans": True},
+        )
+
+        self.assertTrue(judgment.is_valid)
+        self.assertEqual(judgment.answers, ())
+        self.assertTrue(judgment.to_dict()["metadata"]["upstream_empty_valid_spans"])
+
+        with self.assertRaisesRegex(ValueError, "must be marked"):
+            QuestionJudgment(
+                source_id="upstream-validator",
+                is_valid=True,
+                answers=(),
             )
 
     def test_rejects_unrecognized_explicit_schema_version(self) -> None:
