@@ -94,7 +94,7 @@ The principal hypotheses are that structured span selection will make returned e
 ## System design
 
 ```mermaid
-flowchart LR
+flowchart TB
     A["Raw input text"] --> B["Event candidate generation"]
     B --> C["Event mention classification"]
     C --> D["Predicate-conditioned encoder"]
