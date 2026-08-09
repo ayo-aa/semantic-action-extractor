@@ -73,4 +73,3 @@ def get_artifact(key: str) -> DatasetArtifact:
     except KeyError as error:
         choices = ", ".join(sorted(ARTIFACTS))
         raise KeyError(f"unknown dataset artifact {key!r}; choose from: {choices}") from error
-
