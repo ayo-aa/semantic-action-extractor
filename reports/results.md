@@ -51,7 +51,9 @@ split-manifest digest, duplicate and overlength policies, training-only label
 inventory, model/tokenizer revisions, configuration digest, Git revision,
 three paired seeds, checkpoint-selection rule, scorer version, hardware,
 resolved device, package versions, drop and repair counts, and whether the test
-split influenced development.
+split influenced development. Systems results must also state the exact fixed
+batch protocol and memory method: resettable CUDA allocator peak or
+process-lifetime peak RSS for CPU/MPS, including model load.
 
 Per-role support and scores, supplied-predicate diagnostics, and the
 preregistered error categories must accompany the aggregate table. Predicate-

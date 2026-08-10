@@ -196,9 +196,10 @@ injected runtimes:
   fingerprint, a new Git-ignored output location, and an exact Git revision;
   stages all six runs, records non-sensitive partial-failure state, and
   atomically publishes canonical paired results; and
-- a canonical aggregate-only systems benchmark contract for p50/p95 latency,
-  batched throughput, peak memory, checkpoint size, hardware, and package
-  revisions without serializing examples, IDs, paths, or raw timing samples.
+- a validated-checkpoint systems benchmark CLI and canonical aggregate-only
+  contract for p50/p95 latency, batched throughput, explicitly identified peak
+  memory, checkpoint size, hardware, and package revisions without serializing
+  examples, IDs, paths, or raw timing samples.
 
 This software completeness is not empirical validation. The concrete
 PyTorch/Transformers path has not been run on an authorized prepared dataset.

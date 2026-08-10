@@ -29,6 +29,7 @@ neural = [
 
 [project.scripts]
 semantic-action-extractor = "semantic_action_extractor.cli:main"
+semantic-action-benchmark-srl = "semantic_action_extractor.srl.systems_benchmark_cli:main"
 semantic-action-prepare-babysrl = "semantic_action_extractor.srl.babysrl:main"
 semantic-action-review-babysrl = "semantic_action_extractor.srl.manual_review:main"
 semantic-action-train-srl = "semantic_action_extractor.srl.training_cli:main"

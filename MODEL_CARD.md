@@ -80,7 +80,7 @@ explicit identifiers and counts.
 | Development-only checkpoint selection and one final test evaluation | Implemented |
 | Three-seed paired predicate/no-predicate experiment aggregation | Implemented |
 | Strict paired training CLI with ignored-output and exact-Git-revision checks | Implemented |
-| Aggregate-only systems benchmark contract | Implemented; real measurements not run |
+| Validated-checkpoint systems benchmark CLI and aggregate-only contract | Implemented; real measurements not run |
 | Real PyTorch/Transformers smoke run | Passed on synthetic input |
 | Authorized prepared training data | None |
 | Public training/evaluation | Not run |

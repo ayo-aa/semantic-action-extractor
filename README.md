@@ -260,6 +260,22 @@ fingerprint match, a new Git-ignored output directory, and an exact Git commit.
 It stages six seed/variant runs, preserves a machine-readable partial failure
 record if a run stops, and atomically publishes the complete paired result.
 
+After a checkpoint exists, the real benchmark command validates its metadata,
+labels, state digest, config, and dataset before loading it. It measures fixed
+single-example and eight-example batches and writes only canonical aggregates:
+
+```bash
+semantic-action-benchmark-srl \
+  --config path/to/exact-variant.toml \
+  --dataset path/to/ignored/prepared-dataset \
+  --checkpoint path/to/checkpoint-bundle \
+  --output path/to/new/ignored/benchmark.json
+```
+
+CUDA reports a resettable allocator peak. CPU and MPS report process-lifetime
+peak RSS, including model load, because MPS has no resettable peak-memory
+counter. The result records that method explicitly.
+
 ## License
 
 Original repository code is MIT licensed. That license does not apply to

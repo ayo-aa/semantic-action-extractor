@@ -25,6 +25,14 @@ from typing import Protocol
 
 SYSTEMS_BENCHMARK_VERSION = 1
 
+MEMORY_MEASUREMENT_METHODS = frozenset(
+    {
+        "cuda_max_memory_allocated",
+        "injected_runner_peak",
+        "process_peak_rss",
+    }
+)
+
 _VARIANTS = frozenset({"predicate_signal", "no_predicate_signal"})
 _DEVICE_RE = re.compile(r"(?:cpu|mps|cuda(?::[0-9]+)?)")
 _SHA256_RE = re.compile(r"[0-9a-f]{64}")
@@ -83,7 +91,13 @@ _BATCHED_KEYS = frozenset(
         "throughput_examples_per_second",
     }
 )
-_RESOURCE_KEYS = frozenset({"peak_memory_bytes", "checkpoint_size_bytes"})
+_RESOURCE_KEYS = frozenset(
+    {
+        "peak_memory_bytes",
+        "checkpoint_size_bytes",
+        "memory_measurement_method",
+    }
+)
 _ENVIRONMENT_KEYS = frozenset({"hardware", "package_versions"})
 
 
@@ -146,6 +160,17 @@ def _require_digest(value: object, *, field: str) -> str:
         raise TypeError(f"{field} must be a string")
     if _SHA256_RE.fullmatch(value) is None:
         raise ValueError(f"{field} must be a lowercase SHA-256 digest")
+    return value
+
+
+def _require_memory_measurement_method(value: object) -> str:
+    if not isinstance(value, str):
+        raise TypeError("memory_measurement_method must be a string")
+    if value not in MEMORY_MEASUREMENT_METHODS:
+        allowed = ", ".join(sorted(MEMORY_MEASUREMENT_METHODS))
+        raise ValueError(
+            "memory_measurement_method must be one of: " + allowed
+        )
     return value
 
 
@@ -362,6 +387,7 @@ class SystemsBenchmarkResult:
     checkpoint_size_bytes: int
     hardware: tuple[tuple[str, str], ...]
     package_versions: tuple[tuple[str, str], ...]
+    memory_measurement_method: str = "injected_runner_peak"
 
     def __post_init__(self) -> None:
         version = _require_exact_int(
@@ -377,7 +403,10 @@ class SystemsBenchmarkResult:
             raise ValueError(
                 "variant must be predicate_signal or no_predicate_signal"
             )
-        if not isinstance(self.device, str) or _DEVICE_RE.fullmatch(self.device) is None:
+        if (
+            not isinstance(self.device, str)
+            or _DEVICE_RE.fullmatch(self.device) is None
+        ):
             raise ValueError("device must be cpu, mps, cuda, or cuda:<index>")
         if not isinstance(self.protocol, BenchmarkProtocol):
             raise TypeError("protocol must be a BenchmarkProtocol")
@@ -396,6 +425,7 @@ class SystemsBenchmarkResult:
         _require_nonnegative_int(
             self.checkpoint_size_bytes, field="checkpoint_size_bytes"
         )
+        _require_memory_measurement_method(self.memory_measurement_method)
         _validate_frozen_safe_mapping(
             self.hardware,
             field="hardware",
@@ -424,6 +454,7 @@ class SystemsBenchmarkResult:
         checkpoint_size_bytes: int,
         hardware: Mapping[str, str],
         package_versions: Mapping[str, str],
+        memory_measurement_method: str = "injected_runner_peak",
     ) -> SystemsBenchmarkResult:
         """Freeze safe environment mappings in canonical key order."""
 
@@ -452,6 +483,7 @@ class SystemsBenchmarkResult:
                 allowed_keys=_PACKAGE_KEYS,
                 value_pattern=_SAFE_VERSION_VALUE_RE,
             ),
+            memory_measurement_method=memory_measurement_method,
         )
 
     def to_dict(self) -> dict[str, object]:
@@ -471,6 +503,9 @@ class SystemsBenchmarkResult:
             "resources": {
                 "peak_memory_bytes": self.peak_memory_bytes,
                 "checkpoint_size_bytes": self.checkpoint_size_bytes,
+                "memory_measurement_method": (
+                    self.memory_measurement_method
+                ),
             },
             "environment": {
                 "hardware": dict(self.hardware),
@@ -549,6 +584,9 @@ class SystemsBenchmarkResult:
             checkpoint_size_bytes=resources_value["checkpoint_size_bytes"],
             hardware=environment_value["hardware"],
             package_versions=environment_value["package_versions"],
+            memory_measurement_method=resources_value[
+                "memory_measurement_method"
+            ],
         )
         if result.benchmark_version != root["benchmark_version"]:
             raise ValueError("benchmark_version does not match the schema")
@@ -567,6 +605,7 @@ def run_systems_benchmark(
     hardware: Mapping[str, str],
     package_versions: Mapping[str, str],
     runner: SystemsBenchmarkRunner,
+    memory_measurement_method: str = "injected_runner_peak",
 ) -> SystemsBenchmarkResult:
     """Run warmups and measured iterations through an injected runner.
 
@@ -587,6 +626,7 @@ def run_systems_benchmark(
         hardware=hardware,
         package_versions=package_versions,
         runner=runner,
+        memory_measurement_method=memory_measurement_method,
     )
 
     for batch_size in (
@@ -656,6 +696,7 @@ def run_systems_benchmark(
         checkpoint_size_bytes=checkpoint_size_bytes,
         hardware=hardware,
         package_versions=package_versions,
+        memory_measurement_method=memory_measurement_method,
     )
 
 
@@ -668,6 +709,7 @@ def _validate_orchestration_inputs(
     hardware: Mapping[str, str],
     package_versions: Mapping[str, str],
     runner: SystemsBenchmarkRunner,
+    memory_measurement_method: str,
 ) -> None:
     if not isinstance(identity, BenchmarkIdentity):
         raise TypeError("identity must be a BenchmarkIdentity")
@@ -677,6 +719,7 @@ def _validate_orchestration_inputs(
         raise ValueError("variant must be predicate_signal or no_predicate_signal")
     if not isinstance(device, str) or _DEVICE_RE.fullmatch(device) is None:
         raise ValueError("device must be cpu, mps, cuda, or cuda:<index>")
+    _require_memory_measurement_method(memory_measurement_method)
     _freeze_safe_mapping(
         hardware,
         field="hardware",
