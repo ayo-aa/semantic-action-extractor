@@ -58,10 +58,11 @@ The design tokenizes with `bert-base-uncased`, aligns word labels to WordPieces,
 - Architecture construction boundary: implemented; tested with injected fakes only
 - Gold-label WordPiece alignment: implemented
 - BIO repair and span decoding: implemented
+- Source-neutral PropBank/PTB pointer-to-BIO conversion: implemented with invented fixtures
 - Subword-prediction collapse: not implemented
 - Generic micro exact labeled-span scorer: implemented
-- UP head/derived-span integration and per-role reporting: not implemented
-- Public dataset adapter: not implemented
+- Approved-corpus integration and per-role reporting: not implemented
+- MASC archive adapter and preparation pipeline: not implemented
 - Training and evaluation pipeline: not implemented
 - Public training run: not started
 - Public checkpoint: none
@@ -71,7 +72,7 @@ The construction boundary returns dictionary-compatible logits and optional loss
 
 ### Planned training data
 
-Universal Proposition Bank 1.0 English EWT is the leading candidate pending feasibility and rights review. If adopted, the project will evaluate its annotated argument heads directly and may create deterministic silver spans through a versioned Universal Dependencies subtree expansion.
+No training corpus has been approved. UP 1.0 English EWT was rejected for this milestone because its dependency-head roles do not supply the required gold argument spans. The 88K-word MASC PropBank release is the next candidate, but acquisition, archive lineage, rights, pointer-to-span conversion, verbal coverage, and a document-disjoint split must pass the recorded feasibility gate before an adapter or training run begins.
 
 Restricted OntoNotes-derived course files and checkpoints are not included or used as public evidence.
 
@@ -80,13 +81,13 @@ Restricted OntoNotes-derived course files and checkpoints are not included or us
 - research on supplied-predicate English semantic role labeling;
 - controlled predicate-conditioning experiments;
 - source-grounded role extraction with human review;
-- comparison of gold-head and derived-span evaluation;
+- exact gold-span evaluation on an approved public source;
 - a downstream component after separately evaluated predicate discovery.
 
 ### Out-of-scope uses
 
 - treating `ARG0` and `ARG1` as universal actor and patient categories;
-- claiming gold full-span evaluation from the UP head annotations;
+- treating MASC or any other candidate as approved before its documented gate passes;
 - assuming a supplied-predicate score represents raw-text end-to-end quality;
 - multilingual or cross-domain use without separate evaluation;
 - autonomous decisions in employment, credit, health, legal, safety, or other consequential settings;
@@ -94,21 +95,21 @@ Restricted OntoNotes-derived course files and checkpoints are not included or us
 
 ### Evaluation contract
 
-The only implemented metric is generic micro exact labeled-span precision, recall, and F1 over word-level BIO sequences, excluding supplied-predicate `V` and continuation `C-V` spans and reporting repaired prediction tags. Planned public evaluation will separate annotated heads from any declared derived BIO targets. Per-role results, candidate detection, token accuracy, latency, memory, and seed variation remain pending.
+The only implemented metric is generic micro exact labeled-span precision, recall, and F1 over word-level BIO sequences, excluding supplied-predicate `V` and continuation `C-V` spans and reporting repaired prediction tags. Planned public evaluation must report gold pointer-to-span conversion coverage and every unsupported or dropped source construct. Per-role results, candidate detection, token accuracy, latency, memory, and seed variation remain pending.
 
 Token accuracy is diagnostic only because frequent `O` labels can conceal poor argument extraction.
 
 ### Risks and mitigations
 
-- **Boundary uncertainty:** separate annotated heads from derived spans in data structures and reports.
+- **Boundary fidelity:** preserve exact annotated constituents and count every pointer or overlap that cannot be represented faithfully as word-level BIO.
 - **Role overinterpretation:** preserve PropBank labels before any convenience mapping.
 - **Predicate assumption:** report supplied-predicate and end-to-end evaluation independently.
 - **Domain shift:** require representative authorized evaluation before a deployment claim.
-- **Opaque errors:** retain source tokens, offsets, labels, and error categories for inspection.
+- **Opaque errors:** retain source tokens, terminal-to-word mappings, labels, error categories, and—when available—character offsets for inspection.
 - **Data rights:** keep datasets outside Git and review checkpoint redistribution separately.
 
 ## Results statement
 
-Automated tests verify schema validation, exact offsets, baseline behavior, BIO transformations, gold-label alignment, model-construction behavior through injected fakes, and generic metric calculations. They do not establish extraction accuracy.
+Automated tests verify schema validation, exact offsets, baseline behavior, documented PropBank record and pointer conversion, BIO transformations, gold-label alignment, model-construction behavior through injected fakes, and generic metric calculations. They do not establish extraction accuracy.
 
 No trained model result, operational-readiness claim, or redistributable checkpoint is available in the current repository state.

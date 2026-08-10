@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantic-action-extractor"
-version = "0.4.0.dev0"
+version = "0.4.0.dev1"
 description = "Research scaffold for predicate-conditioned PropBank role labeling and rule-based action extraction."
 readme = "README.md"
 requires-python = ">=3.11"

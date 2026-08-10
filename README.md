@@ -4,7 +4,7 @@
 
 This project turns short English text into source-grounded predicate–argument records. Its research core is the same task and architecture as Ayo Adetayo's original semantic-role-labeling homework: given a sentence and one supplied predicate, fine-tune BERT to assign word-level PropBank BIO labels such as `ARG0`, `ARG1`, and `ARGM-TMP`.
 
-The repository currently contains a runnable rule baseline and unit-tested SRL primitives for WordPiece/BIO alignment, BIO repair and decoding, generic micro exact labeled-span scoring, and construction of a predicate-conditioned BERT token classifier. The public-data adapter, word-level prediction collapse, training and evaluation runner, checkpoint, and corpus results are pending.
+The repository currently contains a runnable rule baseline and unit-tested SRL primitives for classic/modern PropBank record parsing, Penn Treebank pointer-to-BIO conversion, WordPiece/BIO alignment, BIO repair and decoding, generic micro exact labeled-span scoring, and construction of a predicate-conditioned BERT token classifier. MASC archive integration, word-level prediction collapse, the training and evaluation runner, a checkpoint, and corpus results are pending.
 
 ## Abstract
 
@@ -49,6 +49,8 @@ The current rule baseline produces this action view. A future neural research re
 flowchart LR
     A["Raw text"] --> B["Rule candidate predicates"]
     C["Evaluation sentence plus supplied predicate"] --> D["One sentence and one predicate index"]
+    L["PropBank record plus PTB tree"] --> M["Fail-closed pointer-to-BIO conversion (implemented)"]
+    M --> D
     B -.->|planned orchestration| D
     D --> E["WordPiece/BIO alignment (implemented)"]
     D --> F["First-piece predicate indicator (implemented)"]
@@ -83,11 +85,13 @@ These primitives are a partial modular reimplementation, not a trained pipeline.
 
 ## Public research data
 
-The leading candidate for public-data feasibility and rights review is [Universal Proposition Bank 1.0 English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT). It resembles the homework's supplied-predicate PropBank task, but it is not yet an adopted or implemented data source for this repository.
+[Universal Proposition Bank 1.0 English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT) has been rejected for the restored BIO-span milestone. It supplies dependency-head arguments, not the gold argument spans required by this project's word-level target; the [UP 2.0 paper](https://aclanthology.org/2022.lrec-1.181/) explicitly identifies that limitation.
 
-Its annotation marks argument **heads**, not full gold argument spans. If it is adopted, a planned adapter will preserve those heads as the gold-supported representation and may deterministically expand a head through the Universal Dependencies tree to create a derived BIO span. Results must call those expanded spans *derived* or *silver*; they are not OntoNotes-equivalent gold spans. Official train, development, test, and document boundaries would remain unchanged.
+The next feasibility candidate is the [88K-word MASC PropBank release](https://anc.org/data/masc/downloads/data-download/), which is advertised with original PropBank pointers and the Penn Treebank parses they reference. MASC is **not yet selected for training or downloaded**. A source-neutral, fail-closed pointer conversion core now exists with invented tests; MASC file discovery, joins, provenance allowlisting, coverage audit, and document-disjoint split protocol remain behind the recorded gate.
 
-No research corpus is downloaded or vendored by the current package. Candidate-source questions and the future preparation contract are documented in [DATA_USAGE.md](DATA_USAGE.md).
+The conversion core parses the documented classic and later English `.prop` record layouts, counts PTB empty terminals during pointer resolution, removes them only from the model-facing word sequence, preserves discontinuous pieces, treats `LINK-*` as metadata, retains the raw record and terminal-to-word map, and rejects an entire predicate instance when one gold role cannot be represented faithfully. It produces a validated unsplit record so document-level splits can be frozen later. `wsj_*` basenames are denied by default as a rights backstop; a future MASC adapter must add the stricter provenance-reviewed allowlist. Rejections carry stable reason codes so a corpus audit can reconcile every input row without turning failed arguments into false `O` labels.
+
+No research corpus is downloaded or vendored by the current package. The decision record and pass/fail gate are documented in [DATA_USAGE.md](DATA_USAGE.md) and [docs/datasets/masc_propbank_gate.md](docs/datasets/masc_propbank_gate.md).
 
 ## Evaluation contracts
 
@@ -97,8 +101,6 @@ The project reports distinct measures for distinct claims:
 | --- | --- | --- |
 | Predicate-candidate recall | Whether the raw-text front end proposed each annotated predicate | Detector implemented; corpus evaluator pending |
 | Generic exact labeled-span P/R/F1 | Whether predicted BIO spans match gold label and boundary exactly | Implemented for word-level BIO sequences; no corpus result |
-| Exact labeled-head P/R/F1 | Whether a model found the correct public argument head and PropBank role | Public-data encoding and integration pending |
-| Exact derived-span P/R/F1 | Whether prediction matches a declared deterministic silver span and role | Derived-span adapter pending |
 | Per-role F1 | Which PropBank roles improve or fail | Not implemented |
 | Token accuracy | Word-label diagnostic dominated by `O` labels | Not implemented; planned diagnostic |
 | End-to-end frame F1 | Combined candidate detection and downstream role extraction from raw text | Not implemented |
@@ -111,8 +113,8 @@ Unit tests establish software behavior, not model accuracy. The earlier course r
 | Study | Purpose | Status |
 | --- | --- | --- |
 | E0 — Rule baseline | Establish a runnable product interface, exact source offsets, and candidate proposer | Baseline, API, and CLI implemented; corpus and latency evaluation pending |
-| E1 — SRL foundation | Restore BIO alignment, supplied-predicate conditioning, public-data adaptation, and exact role scoring | In progress: core primitives implemented; public adapter and pipeline pending |
-| E2 — Public neural reproduction | Fine-tune the original BERT architecture on the frozen public split and report multiple seeds | Not started |
+| E1 — SRL foundation | Restore BIO alignment, supplied-predicate conditioning, public-data selection, adaptation, and exact role scoring | In progress: source-neutral conversion and SRL primitives implemented; MASC acquisition audit and archive adapter pending |
+| E2 — Public neural reproduction | Fine-tune the original BERT architecture on a frozen, predeclared public split and report multiple seeds | Not started |
 | E3 — Bounded analysis | Compare the original predicate signal with no signal, then report errors and systems costs | Not started |
 
 E2 will not begin until E1 is reviewed. No public result, checkpoint, or benchmark claim exists yet.
@@ -120,7 +122,7 @@ E2 will not begin until E1 is reviewed. No public result, checkpoint, or benchma
 ## Scope and limitations
 
 - PropBank roles describe relationships relative to a predicate sense; they do not provide a universal actor/patient ontology.
-- If UP English EWT is adopted, any full spans produced by its future adapter will be deterministic derivations from annotated heads.
+- MASC is a candidate, not an adopted dependency; no corpus-backed claim exists until its feasibility gate passes.
 - The controlled model assumes a supplied predicate. Raw-text candidate detection is a separate source of error.
 - The rule baseline is English-specific and works best on short active clauses.
 - The system does not resolve coreference, implicit arguments, intent, task ownership, completion state, or legal/business meaning.
@@ -137,7 +139,7 @@ E2 will not begin until E1 is reviewed. No public result, checkpoint, or benchma
 
 ## License
 
-Original repository code is MIT licensed. That license does not apply automatically to datasets, pretrained models, or other third-party artifacts. If Universal Proposition Bank and Universal Dependencies are adopted, their licenses and attribution requirements will remain separate.
+Original repository code is MIT licensed. That license does not apply automatically to datasets, pretrained models, or other third-party artifacts. If MASC is adopted, its license, attribution, source-text lineage, and any checkpoint obligations will remain separate.
 
 ## Run the project
 
