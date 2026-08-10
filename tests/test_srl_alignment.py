@@ -1,6 +1,9 @@
 import unittest
 
-from semantic_action_extractor.srl.alignment import align_word_labels
+from semantic_action_extractor.srl.alignment import (
+    align_word_labels,
+    collapse_subword_predictions,
+)
 
 
 LABELS = {
@@ -123,6 +126,79 @@ class AlignmentTests(unittest.TestCase):
             align_word_labels(tokenizer, ["closed"], [], 0, LABELS)
         with self.assertRaisesRegex(TypeError, "integer"):
             align_word_labels(tokenizer, ["closed"], ["B-V"], False, LABELS)
+
+
+class PredictionCollapseTests(unittest.TestCase):
+    def test_keeps_first_piece_and_ignores_special_and_padding_tokens(self) -> None:
+        collapsed = collapse_subword_predictions(
+            [99, 4, 5, 3, 99, 99],
+            [None, 0, 0, 1, None, None],
+            2,
+            attention_mask=[1, 1, 1, 1, 1, 0],
+        )
+
+        self.assertEqual(collapsed, (4, 3))
+
+    def test_policy_is_first_piece_even_when_continuation_disagrees(self) -> None:
+        collapsed = collapse_subword_predictions(
+            ["special", "B-ARG0", "O", "B-V", "special"],
+            [None, 0, 0, 1, None],
+            2,
+        )
+
+        self.assertEqual(collapsed, ("B-ARG0", "B-V"))
+
+    def test_rejects_token_and_mask_shape_mismatches(self) -> None:
+        with self.assertRaisesRegex(ValueError, "predictions and word IDs"):
+            collapse_subword_predictions([1], [None, 0], 1)
+        with self.assertRaisesRegex(ValueError, "attention mask and word IDs"):
+            collapse_subword_predictions(
+                [1, 2], [None, 0], 1, attention_mask=[1]
+            )
+        with self.assertRaisesRegex(TypeError, "scalar value"):
+            collapse_subword_predictions([[1, 2]], [0], 1)
+
+    def test_rejects_invalid_attention_masks(self) -> None:
+        with self.assertRaisesRegex(ValueError, "integer 0 or 1"):
+            collapse_subword_predictions(
+                [1, 2], [None, 0], 1, attention_mask=[1, 2]
+            )
+        with self.assertRaisesRegex(ValueError, "integer 0 or 1"):
+            collapse_subword_predictions(
+                [1, 2], [None, 0], 1, attention_mask=[1, True]
+            )
+
+    def test_rejects_padding_that_references_a_word(self) -> None:
+        with self.assertRaisesRegex(ValueError, "padding token"):
+            collapse_subword_predictions(
+                [1, 2], [None, 0], 1, attention_mask=[1, 0]
+            )
+
+    def test_rejects_invalid_word_ids(self) -> None:
+        with self.assertRaisesRegex(TypeError, "integers or None"):
+            collapse_subword_predictions([1], [False], 1)
+        with self.assertRaisesRegex(ValueError, "invalid word ID"):
+            collapse_subword_predictions([1], [-1], 1)
+        with self.assertRaisesRegex(ValueError, "invalid word ID"):
+            collapse_subword_predictions([1], [1], 1)
+
+    def test_requires_each_word_once_in_order(self) -> None:
+        with self.assertRaisesRegex(ValueError, "omitted, reordered, or split"):
+            collapse_subword_predictions([1, 2], [0, 2], 3)
+        with self.assertRaisesRegex(ValueError, "omitted, reordered, or split"):
+            collapse_subword_predictions([1, 2], [1, 0], 2)
+        with self.assertRaisesRegex(ValueError, "omitted, reordered, or split"):
+            collapse_subword_predictions([1, 2, 3], [0, 1, 0], 2)
+        with self.assertRaisesRegex(ValueError, "omitted, reordered, or split"):
+            collapse_subword_predictions([1, 2, 3], [0, None, 0], 1)
+
+    def test_validates_number_of_words_and_flat_sequences(self) -> None:
+        with self.assertRaisesRegex(TypeError, "number of words"):
+            collapse_subword_predictions([1], [0], True)
+        with self.assertRaisesRegex(ValueError, "positive"):
+            collapse_subword_predictions([], [], 0)
+        with self.assertRaisesRegex(TypeError, "flat sequence"):
+            collapse_subword_predictions("B-V", [0, 0, 0], 1)
 
 
 if __name__ == "__main__":
