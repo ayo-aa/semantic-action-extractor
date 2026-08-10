@@ -257,9 +257,9 @@ or those terms can be skipped.
 | Aggregate read-only audit | Completed technical inspection; not access authorization |
 | Source-neutral code and synthetic tests | Allowed |
 | User TalkBank registration and rules acceptance | Required; not yet recorded |
-| Authorized manual conversion sample | HOLD until access is confirmed |
-| Prepared local dataset | HOLD; must remain ignored after approval |
-| Model training | HOLD pending registration and acceptance |
+| Provisional prepared local dataset | HOLD pending registration and acceptance; must remain ignored |
+| Authorized manual conversion sample | HOLD; runs privately over the fingerprinted prepared/raw pair |
+| Model training | HOLD pending registration, acceptance, and a manual-review `pass` |
 | Colab or other web processing | HOLD absent explicit no-storage assurance |
 | Raw/prepared data publication | Prohibited by repository policy |
 | Checkpoint redistribution | HOLD pending written rights clarification |
@@ -292,7 +292,8 @@ BabySRL resolves the MASC structural annotation-fit failure without changing
 the semantic project's claim: it directly supplies overwhelmingly
 representable surface argument spans conditioned on a supplied verbal
 predicate. The technical data gate is passed, but the operational gate is
-intentionally not. The next steps are TalkBank registration, recorded
-acceptance of the current rules, and an authorized manual conversion sample;
-only then may ignored preparation and model training begin. CourseWorks is not
+intentionally not. The next steps are TalkBank registration and recorded
+acceptance of the current rules; only then may provisional ignored preparation
+begin. The authorized manual workflow must compare that prepared dataset with
+the pinned raw source and reach `pass` before model training. CourseWorks is not
 part of that workflow.

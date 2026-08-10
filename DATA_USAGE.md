@@ -1,92 +1,196 @@
 # Data usage
 
-## Repository boundary
+## Current disposition
 
-No raw or processed research dataset is committed to this repository. The rule baseline is untrained and processes only text supplied at runtime. Tests and examples use short synthetic sentences written for this project.
+No raw or prepared research dataset is committed to this repository. No corpus
+has been prepared for model input, no neural training has run, no model-quality
+result exists, and no checkpoint exists.
 
-The package itself does not retain, transmit, or log user input. Shell history, notebooks, calling applications, and deployment environments can have separate retention behavior.
+The repository includes independently written code, synthetic fixtures,
+corpus-free split assignments, archive fingerprints, and non-reconstructive
+aggregate audit counts. Raw archives and any future prepared JSONL remain
+ignored by Git.
 
-## Restricted course data
+## Columbia course-data boundary
 
-The original homework used course-provided PropBank-style files derived from OntoNotes under Columbia and Linguistic Data Consortium access. Those materials were limited to authorized teaching or research use.
+The original course exercise used course-provided OntoNotes-derived material
+under Columbia and Linguistic Data Consortium teaching/research access. That
+material is **not used** in this project. CourseWorks is not an acquisition or
+authentication dependency.
 
-The public repository excludes:
+The repository excludes:
 
 - course train, development, and test files;
-- label lists or statistics derived from the restricted files;
-- sentences, annotations, screenshots, outputs, and grading fixtures;
-- starter code, assignment prose, and course diagrams;
-- checkpoints trained on the restricted files.
+- labels, statistics, or examples derived from those files;
+- notebook outputs, screenshots, grading fixtures, and course results;
+- starter code, assignment prose, and course diagrams; and
+- checkpoints trained on course data.
 
-The restricted run is architectural background only. Its measurements are not presented as empirical results for this repository.
+The course exercise informs only the independently reimplemented architecture.
+Authorization to use Columbia resources does not by itself grant permission to
+publish LDC-derived data or weights, and it does not replace a third-party
+corpus's access terms.
 
-## Dataset decision record
+## Dataset decisions
 
-### Rejected: Universal Proposition Bank 1.0 English EWT
+### Rejected: Universal Proposition Bank English EWT
 
-[UP 1.0 English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT) is not a valid primary source for the restored word-level BIO-span milestone. Its English conversion places roles on dependency heads, and the [UP 2.0 paper](https://aclanthology.org/2022.lrec-1.181/) states that those heads are insufficient to recover full argument spans. Expanding dependency subtrees would create heuristic targets and a different research claim.
-
-This decision does not judge UP 1.0 as a resource. It rejects a mismatch between that resource and this project's fixed span-SRL objective. UP 1.0 remains a possible source only for a separately declared dependency-head SRL project; that pivot is out of the current scope.
+[UP English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT)
+places roles on dependency heads rather than supplying the complete gold
+argument spans required by the fixed BIO contract. Expanding dependency
+subtrees would create heuristic targets and change the research claim. It is
+not used.
 
 ### Rejected: MASC PropBank
 
-The [MASC-PROPBANK-ORIG download](https://anc.org/data/masc/downloads/data-download/) is described by the Open American National Corpus as an 88K-word MASC subset with original-format PropBank annotations and the Penn Treebank annotations they reference. The [MASC overview](https://anc.org/data/masc/) describes MASC as available for any purpose under the Creative Commons Attribution 3.0 United States license.
+The [MASC PropBank download](https://anc.org/data/masc/downloads/data-download/)
+was inspected only through a read-only, aggregate feasibility audit. The
+pinned local artifact SHA-256 is
+`b7e89cfbb7a0b7caf3ba5076ac95ee80810834d3522678eefd488f166ddcc4df`.
+It remains ignored under `data/raw/`.
 
-With explicit approval, the archive was fetched from ANC's artifact URL into ignored local storage under the transport caveat recorded in the audit report: the host presented an expired TLS certificate. Its locally pinned SHA-256 is `b7e89cfbb7a0b7caf3ba5076ac95ee80810834d3522678eefd488f166ddcc4df`. No source payload was written outside the ZIP or committed. The archive reports 88,530 words and bundles full source text, inline PTB parses, and `.prop` annotations, but contains no archive-level `LICENSE`, `COPYING`, or `NOTICE` file. It includes 36 WSJ files in each layer; a `wsj_0120` versus `wsj_0122` mismatch produces 37 unique `wsj_*` identifiers across the union.
+MASC is rejected for the fixed milestone. In the strict diagnostic slice,
+unlinked, unindexed trace-only arguments cap optimistic exact-span conversion
+at 93.25%; the wider sensitivity ceiling is 92.85%. Both miss the predeclared
+99% gate. Rights/lineage and join issues also remain unresolved. No MASC
+adapter-specific preparation, split, training run, or checkpoint was created.
+See the [gate record](docs/datasets/masc_propbank_gate.md) and
+[audit](reports/masc_propbank_audit.md).
 
-ANC's corpus-wide CC BY statement is genuine, but the source families also carry publisher and LDC lineage. The 48-document non-WSJ manifest is source-family mapped and permitted only for read-only diagnostic analysis; G1 remains incomplete because an item-level attribution manifest was not finished. It is not cleared for training, corpus redistribution, or checkpoint release. The distinct WSJ slice remains denied unless ANC confirms its bundled text and annotation coverage in writing.
+### Technical pass, use hold: BabySRL
 
-MASC was rejected at the feasibility stage. G2 remains on hold because the pinned manifest has missing layers and unresolved parse-wrapper cases. G3 independently fails: a strict diagnostic slice has a 93.25% optimistic exact-span ceiling, and a wider non-WSJ sensitivity audit caps exact recovery at 92.85%, both below the predeclared 99% threshold. No MASC adapter, split, prepared dataset, training run, or checkpoint may proceed under the fixed milestone. See the [gate record](docs/datasets/masc_propbank_gate.md) and [completed audit](reports/masc_propbank_audit.md).
+[BabySRL](https://talkbank.org/childes/access/Derived/BabySRL.html) is a derived
+CHILDES Brown resource. Its
+[annotation documentation](https://cogcomp.seas.upenn.edu/Data/BabySRL.html)
+describes selected parental utterances with Penn Treebank-style parses and
+PropBank-style verbal roles represented over surface tokens. The underlying
+[Brown corpus page](https://talkbank.org/childes/access/Eng-NA/Brown.html)
+records the source history, citation, and DOI.
 
-The repository retains source-neutral pointer conversion and read-only aggregate audit code with wholly synthetic tests. The local archive is audit evidence only, remains ignored by Git, and is not a package dependency.
+The locally pinned archive has SHA-256
+`a2d8d38b0818910d05154cb62adcb05ef36b00f0aeae2690b7e1677fd5154604`.
+The adapter validates the exact digest and size, ZIP integrity, member set, and
+safe paths before reading CHAT members in memory. It never extracts members
+during the audit.
 
-## Split and leakage controls
+The frozen structural gate is:
 
-- Prefer an official source split when one is documented for the eventual approved corpus.
-- Otherwise freeze a versioned, deterministic, document-disjoint, genre-aware split manifest before inspecting model outcomes.
-- Preserve source document and sentence identifiers exactly.
-- Keep every sentence and predicate instance from one document in one split.
-- Create one SRL instance per eligible verbal predicate.
-- Fit label inventories and other learned preprocessing on training data only.
-- Freeze pointer conversion, role filtering, and exclusion rules before training.
-- Do not inspect test predictions while changing preprocessing, heuristics, or hyperparameters.
-- Run duplicate and document-overlap checks before publishing a result.
+| Outcome | Proposition columns | Share |
+| --- | ---: | ---: |
+| Losslessly converted | 18,397 | 99.2501% |
+| Rejected fail-closed | 139 | 0.7499% |
+| **Declared** | **18,536** | **100.0000%** |
 
-## Local preparation record
+The accepted and rejected counts reconcile exactly. This is an annotation-fit
+result, not permission to prepare or train and not model accuracy.
 
-Every empirical run must record:
+The [CHILDES access page](https://talkbank.org/childes/access.html) identifies
+registration requirements. The current
+[TalkBank ground rules](https://talkbank.org/0share/rules.html) govern use even
+when a particular derived archive is directly reachable. At the audit date,
+those rules state a default CC BY-NC-SA 3.0 basis unless otherwise indicated,
+exclude incorporation into commercial products including model systems,
+require non-storage assurances for web processing, and impose ethics and
+confidentiality duties.
 
-- canonical source URL and retrieval date;
-- source revision or release tag;
-- SHA-256 of each downloaded file;
-- adapter and configuration revision;
-- output fingerprint and instance counts by split;
-- dropped or malformed record counts with reasons;
-- label inventory derived from training data;
-- base model and tokenizer revisions;
-- random seeds, hardware, and package versions.
+The following remain on hold:
+
+| Requirement | Status |
+| --- | --- |
+| TalkBank/CHILDES registration | HOLD; confirmation not recorded |
+| Acceptance of the current access conditions and ground rules | HOLD; acceptance date not recorded |
+| Provisional ignored preparation | BLOCKED until the two access confirmations above are recorded |
+| Authorized privacy-preserving manual conversion sample | HOLD; not performed |
+| Prepared training data | Not created |
+| Local or approved Columbia training | Not started |
+| Third-party web/cloud training | HOLD pending an enforceable no-storage basis |
+| Checkpoint redistribution | HOLD pending a separate written review |
+
+No credentials belong in the repository or this record. The required TalkBank
+step is separate from CourseWorks and from Columbia course-data access.
+After access confirmation, the
+[private manual-review workflow](docs/datasets/babysrl_manual_review.md)
+requires an exact prepared/raw identity match and keeps all selected source
+fields under ignored `data/review/`; only aggregate decisions may leave that
+boundary.
+
+## Frozen split and leakage controls
+
+The corpus-free assignment manifest covers all 133 BabySRL documents: 106
+train, 13 development, and 14 test. Its canonical SHA-256 is
+`73ecae9f81d1d2b9f8495b13b297da9c3d24e387630e71a38ef2420d4c9a5de7`.
+Documents are assigned by a child-stratified SHA-256 policy before outcomes and
+are never moved later.
+
+After that assignment, the adapter excludes every occurrence of an exact
+sentence-token sequence found in more than one split. It retains remaining
+training frequency and deduplicates identical semantic fingerprints within
+development and test. It rejects conflicting annotations for the same source
+sentence/predicate identity.
+
+The safe final eligibility counts from the in-memory audit are:
+
+| Train | Development | Test | Total |
+| ---: | ---: | ---: | ---: |
+| 13,713 | 1,356 | 1,274 | 16,343 |
+
+Prepared dataset I/O adds independent checks for duplicate IDs and semantic
+identities, document and sentence identifiers crossing splits, and exact
+sentence text crossing splits. The label vocabulary is fitted on training data
+only. Development or test labels absent from that vocabulary fail closed.
+
+## Preparation and experiment records
+
+After access confirmation permits provisional ignored preparation, and before
+any empirical run, the project must record:
+
+- canonical source URL, retrieval date, archive size, and SHA-256;
+- adapter revision, split-manifest digest, duplicate policy, prepared counts,
+  exclusions, and prepared-data fingerprint;
+- training-only label order;
+- exact base-model and tokenizer repository revisions;
+- complete configuration digest, Git revision, seed and variant;
+- timestamps, resolved device, hardware, package versions, retained/drop
+  counts, and initial-state fingerprint; and
+- checkpoint state-dictionary SHA-256 and result-artifact digest.
+
+No preprocessing rule may be changed after inspecting test outcomes. The test
+split is evaluated once for each predeclared final run after development-only
+checkpoint selection.
+
+The training CLI additionally refuses a data/config fingerprint mismatch, an
+existing output destination, a destination not covered by Git ignore rules, or
+a non-exact Git revision. Its output guard is a safety boundary, not permission
+to train: access confirmation must precede provisional preparation, and the
+private manual review must reach `pass` before training.
 
 ## Model and artifact rights
 
-Dataset access does not automatically grant permission to redistribute trained weights. Before publishing a checkpoint, verify and document:
+Dataset access does not automatically authorize trained-weight publication.
+Before any checkpoint release, review:
 
-- MASC, source-text, and contributed-annotation obligations;
+- the then-current BabySRL, CHILDES, Brown, and TalkBank terms and required
+  citations;
+- whether training and the intended use comply with the non-commercial and
+  web-processing restrictions;
 - the pretrained encoder and tokenizer licenses;
-- whether the transformed training data creates additional sharing requirements;
-- the license and intended use of the resulting checkpoint.
+- whether transformed training data or weights create additional obligations;
+- privacy and memorization/leakage risk; and
+- the proposed checkpoint license, model card, and distribution channel.
 
-If any right remains unresolved, publish code, configuration, aggregate metrics, and reproduction instructions only—not the dataset or checkpoint.
-
-If MASC is ever reconsidered under a changed scope, the attribution record must name MASC and the American National Corpus project; retain supplied title and notices plus source-author, publisher, Penn Treebank, and PropBank contributor credits; link the exact archive source and [CC BY 3.0 US](https://creativecommons.org/licenses/by/3.0/us/); identify conversion and filtering changes; avoid implying ANC endorsement; and add no legal or technical restriction to redistributed licensed material. Preserve dated copies or fingerprints of the authoritative web evidence because the ZIP has no embedded archive-level license notice.
-
-The current [PropBank release repository](https://github.com/propbank/propbank-release) is a separate CC BY-SA 4.0 distribution and is used here only as format documentation. Copying its rolesets or annotation data would require a separate provenance and license record; its license neither proves nor replaces the rights basis for the pinned ANC-hosted archive.
-
-Wholly invented fixtures are publishable project code. Corpus-derived sentences, trees, role records, and prepared examples remain on hold unless separately cleared and attributed. Aggregate metrics may be published only in non-reconstructive form. Checkpoint publication remains conditional on the final training manifest, provenance review, model card, and memorization/leakage review.
+Until that review reaches an affirmative written decision, publish only code,
+configuration schemas, non-reconstructive aggregate metrics, and reproduction
+instructions—not raw data, prepared examples, corpus excerpts, or weights.
 
 ## Repository controls
 
-The `.gitignore` exclusions are guardrails, not proof of compliance. Inspect every staged file before a commit. Restricted or unreviewed data must never enter Git history temporarily.
+`.gitignore` is a guardrail, not proof of compliance. Inspect every staged file
+before committing. Raw or prepared data must never enter Git history even
+temporarily. Tests and documentation may use only independently invented text,
+not paraphrased or transformed corpus excerpts.
 
-## Evaluation disclosure
-
-Every reported score must name the exact dataset release, split manifest, gold-span conversion policy, conversion coverage, scorer, role filtering, predicate source, seed set, and whether the test split influenced development. Unit-test success is software evidence only.
+Every future score must name the data pin, prepared fingerprint, split and
+duplicate policies, conversion coverage, scorer, predicate source, seed set,
+configuration, Git revision, hardware, and whether test outcomes influenced
+development. Unit-test success and the 99.2501% structural gate are software
+and data-feasibility evidence only.

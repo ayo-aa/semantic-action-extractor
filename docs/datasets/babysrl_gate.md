@@ -25,14 +25,18 @@ That technical result is not authorization to train. CHILDES describes
 transcript access as registration-required, and the
 [TalkBank ground rules](https://talkbank.org/0share/rules.html) govern use even
 though this particular ZIP currently responds to an anonymous HTTP request. The
-project will not prepare training files or train a model until the user:
+project will not write prepared files until the user:
 
 1. registers and signs in through
    [TalkBank/CHILDES](https://talkbank.org/childes/access.html); and
 2. records acceptance of the current access conditions, ground rules, ethics
-   obligations, and non-commercial limits in this decision record; and
-3. permits an authorized, privacy-preserving manual sample review of the frozen
-   conversion policy before preparation.
+   obligations, and non-commercial limits in this decision record.
+
+After those two access steps, the adapter may write a provisional prepared
+dataset only to ignored local or approved Columbia storage. The private manual
+workflow then verifies that complete prepared dataset against the pinned raw
+conversion and reviews deterministic raw-cell/BIO pairs. Model training remains
+blocked until the aggregate manual decision is `pass`.
 
 No CourseWorks or Columbia sign-in is involved. Columbia authorization does not
 replace the separate TalkBank registration and ground-rules step.
@@ -43,9 +47,9 @@ replace the separate TalkBank registration and ground-rules step.
 | --- | --- | --- |
 | TalkBank/CHILDES registration | **HOLD** | User confirms registration; no credentials recorded |
 | Current ground-rules review | **HOLD** | Acceptance date and the reviewed rules URL are recorded here |
-| Authorized manual conversion sample | **HOLD** | Privacy-safe review confirms the mapping without publishing text |
-| Training-data preparation | **BLOCKED** | Access and manual-review items above must be complete |
-| Local or approved Columbia training | **BLOCKED** | Prepared-data approval plus a suitable compute environment |
+| Provisional ignored preparation | **BLOCKED** | Registration and current-rules acceptance must be recorded first |
+| Authorized manual conversion sample | **HOLD** | Prepared/raw identity and sampled mappings pass private review without publishing text |
+| Local or approved Columbia training | **BLOCKED** | Manual aggregate is `pass`, the prepared fingerprint is frozen, and compute is suitable |
 | Third-party web or cloud processing | **HOLD** | No-storage assurance and configuration evidence |
 | Checkpoint redistribution | **HOLD** | Written clarification for the proposed release |
 
@@ -250,6 +254,7 @@ does not infer that all 2018 augmentation features are present.
 Training is still required to complete the portfolio experiment, including the
 predicate-signal model and its no-signal ablation. The next action is the
 TalkBank registration and acceptance checkpoint. Once the user confirms it,
-the project must complete the authorized manual sample, write ignored prepared
-splits, freeze their manifest digest, and then start the controlled training
-run. No CourseWorks access is needed at any stage.
+the project may write provisional ignored prepared splits, create and complete
+the private raw-versus-BIO review, freeze the prepared fingerprint after a
+`pass`, and then start the controlled training run. No CourseWorks access is
+needed at any stage.

@@ -1,126 +1,210 @@
 # Model card
 
-## Current repository status
+## Current status
 
-The repository contains two distinct system components:
+The repository contains two separate components:
 
-1. `rule-based-v0`, a runnable dependency-free action-extraction baseline;
-2. `bert-srl-token-type`, a unit-tested construction and utility layer for a predicate-conditioned semantic-role model, not a complete trained pipeline.
+1. `rule-based-v0`, a runnable, dependency-free action-extraction baseline; and
+2. `bert-srl-token-type`, implemented software for a predicate-conditioned BERT
+   semantic-role model and paired ablation, with no trained weights.
 
-The absence of a checkpoint is intentional. Model claims begin only after a public-data source is approved, the missing pipeline is implemented, and multi-seed training, evaluation, and redistribution review are complete.
+No prepared research data, neural training run, model-quality result, or
+checkpoint exists. This model card therefore describes an intended experiment
+and implemented software boundary, not a released model.
 
 ## `rule-based-v0`
 
 ### Summary
 
-`rule-based-v0` identifies configured English verbs and converts nearby text into source-grounded action records. It is deterministic software, not a trained statistical model.
-
-### Version and dependencies
-
-- Extractor ID: `rule-based-v0`
-- Training data: none
-- Runtime dependencies: Python standard library only
-- Output: actor, predicate, patient, prepositional qualifiers, sentence index, source offsets, and a heuristic score
+`rule-based-v0` identifies configured English verbs and converts nearby text
+into source-grounded action records. It is deterministic software and uses no
+training data.
 
 ### Intended uses
 
-- inspect the package schema and exact source grounding;
+- inspect the package schema and exact source offsets;
 - prototype short-text workflows with human review;
-- propose predicate candidates for the neural SRL stage;
-- provide a transparent product-interface baseline, candidate proposer, and latency comparator;
+- propose predicates for a future separately evaluated neural stage; and
 - exercise the API and CLI without downloading a model.
 
-### Important interpretation limits
-
-The actor and patient fields are surface heuristics. They are not verified semantic roles. Prepositional qualifiers preserve observed wording without deciding whether a phrase is temporal, locative, instrumental, or something else.
-
-The score reflects which heuristic fields were found. It is not calibrated and is not a probability of correctness.
-
-### Known limitations
+### Limitations
 
 - English-specific vocabulary and inflection rules;
-- best on short, active, declarative clauses;
-- false positives from noun/verb/adjective ambiguity;
-- weak coordination, embedding, and passive-voice handling;
-- no reliable negation, modality, predicate sense, coreference, or implicit arguments;
-- no corpus-level quality result.
+- strongest on short active declarative clauses;
+- weak coordination, embedding, passive voice, negation, and modality handling;
+- no predicate sense, coreference, or implicit arguments;
+- actor and patient are surface heuristics, not verified PropBank roles;
+- its score is a ranking heuristic, not a calibrated probability; and
+- no corpus-quality, latency, or memory result exists.
 
 ## `bert-srl-token-type`
 
-### Summary
+### Intended task
 
-The neural component targets the original homework formulation: given pre-split sentence words and one supplied predicate index, predict one PropBank BIO label per word. Current code aligns gold word labels to WordPieces and produces subword logits; prediction collapse back to one label per word remains pending.
+Given pre-split English words and one supplied verbal predicate index, predict
+one PropBank BIO label per source word. The supplied-predicate contract is not a
+raw-text end-to-end contract; predicate discovery must be evaluated separately.
 
-The design tokenizes with `bert-base-uncased`, aligns word labels to WordPieces, sets BERT `token_type_ids` to 1 only on the first predicate WordPiece, passes the sequence through BERT, and applies one linear classifier to each contextual token state. Full fine-tuning is the reproduction target. Cross-entropy ignores special and padding positions.
+### Architecture
 
-### Status
+The experiment will use a revision-pinned BERT encoder compatible with two
+token-type embeddings, plus one learned linear token-classification head. The
+predicate-signal variant sets `token_type_id = 1` only on the first WordPiece of
+the supplied predicate. The paired ablation explicitly supplies all-zero token-
+type IDs. Both the encoder and classifier are trainable.
 
-- Architecture construction boundary: implemented; tested with injected fakes only
-- Gold-label WordPiece alignment: implemented
-- BIO repair and span decoding: implemented
-- Source-neutral PropBank/PTB pointer-to-BIO conversion: implemented with invented fixtures
-- Subword-prediction collapse: not implemented
-- Generic micro exact labeled-span scorer: implemented
-- Approved-corpus integration and per-role reporting: not implemented
-- Read-only aggregate MASC feasibility audit: implemented; dataset rejected
-- Approved-corpus adapter and preparation pipeline: not implemented
-- Training and evaluation pipeline: not implemented
-- Public training run: not started
-- Public checkpoint: none
-- Corpus-level public results: none
+Gold labels are expanded across WordPieces, special and padding positions use
+`-100`, and cross-entropy ignores those positions. Predictions collapse back to
+one label per source word by selecting the first WordPiece. No input is silently
+truncated: tokenized examples above the configured maximum are excluded with
+explicit identifiers and counts.
 
-The construction boundary returns dictionary-compatible logits and optional loss. A future training pipeline must save a `state_dict` together with the base-model revision, label mapping, and configuration; pickling the runtime-defined full model object is not a supported checkpoint format. A real PyTorch/Transformers smoke test remains pending.
+### Implemented software boundary
 
-### Planned training data
+| Component | Status |
+| --- | --- |
+| Canonical prepared dataset I/O and fingerprints | Implemented |
+| Duplicate identity and cross-split leakage validation | Implemented |
+| Immutable training-only label vocabulary | Implemented |
+| Word/BIO-to-WordPiece alignment | Implemented |
+| First-subword prediction collapse | Implemented |
+| Explicit signal and all-zero ablation collation | Implemented |
+| Revision-pinned BERT plus linear head construction | Implemented |
+| Exact argument-span and per-role evaluation | Implemented |
+| Token accuracy and supplied-predicate diagnostics | Implemented |
+| Strict experiment configuration and run provenance | Implemented |
+| SHA-256 integrity-checked checkpoint bundle | Implemented |
+| BabySRL archive adapter, structural audit, split freeze, and duplicate policy | Implemented |
+| Private prepared/raw manual-review workflow with aggregate-only decision | Implemented; not run on BabySRL |
+| AdamW training with optional linear warmup then constant LR | Implemented |
+| Development-only checkpoint selection and one final test evaluation | Implemented |
+| Three-seed paired predicate/no-predicate experiment aggregation | Implemented |
+| Strict paired training CLI with ignored-output and exact-Git-revision checks | Implemented |
+| Aggregate-only systems benchmark contract | Implemented; real measurements not run |
+| Real PyTorch/Transformers smoke run | Passed on synthetic input |
+| Authorized prepared training data | None |
+| Public training/evaluation | Not run |
+| Checkpoint | None |
 
-No training corpus has been approved. UP 1.0 English EWT was rejected because its dependency-head roles do not supply the required gold argument spans. The 88K-word MASC PropBank release was also rejected after a read-only audit: rights review remains incomplete, its provisional manifest is blocked at the join gate, and trace-only arguments cap optimistic exact-span conversion below the predeclared 99% threshold. Replacement-source selection is pending.
+The implementation is exercised by synthetic tests and injected runtimes. A
+separate synthetic forward-and-backward smoke run loaded
+`google-bert/bert-base-uncased` at revision
+`86b5e0934494bd15c9632b12f734a8a67f723594`, produced finite loss, and
+completed on Apple MPS with PyTorch 2.13.0 and Transformers 5.14.1. This validates the
+real optional-library model boundary only; it is not corpus training, an
+accuracy result, or evidence of operational fitness.
 
-Restricted OntoNotes-derived course files and checkpoints are not included or used as public evidence.
+### Training data status
 
-### Intended uses
+Universal Proposition Bank English EWT and MASC PropBank were rejected for the
+fixed full-span target. MASC's trace-only arguments keep optimistic exact-span
+conversion below the predeclared 99% threshold.
 
-- research on supplied-predicate English semantic role labeling;
-- controlled predicate-conditioning experiments;
-- source-grounded role extraction with human review;
-- exact gold-span evaluation on an approved public source;
-- a downstream component after separately evaluated predicate discovery.
+[BabySRL](https://talkbank.org/childes/access/Derived/BabySRL.html) is the
+technical replacement candidate. Its
+[annotation format](https://cogcomp.seas.upenn.edu/Data/BabySRL.html) matches
+the overt verbal span target. The pinned adapter losslessly converts 18,397 of
+18,536 declared propositions, or 99.2501%, and freezes 13,713/1,356/1,274
+eligible train/development/test examples after duplicate controls. The
+133-document assignment manifest SHA-256 is
+`73ecae9f81d1d2b9f8495b13b297da9c3d24e387630e71a38ef2420d4c9a5de7`.
 
-### Out-of-scope uses
+Those are aggregate feasibility counts, not prepared files and not training
+evidence. The [CHILDES access requirements](https://talkbank.org/childes/access.html),
+current [TalkBank ground rules](https://talkbank.org/0share/rules.html), and an
+authorized privacy-preserving manual sample remain on hold. Registration and
+rules acceptance must precede provisional ignored preparation; the resulting
+prepared/raw pair must pass private review before training. CourseWorks and
+Columbia course data are not used.
 
-- treating `ARG0` and `ARG1` as universal actor and patient categories;
-- treating either rejected source, or any future candidate, as approved without a documented gate;
-- assuming a supplied-predicate score represents raw-text end-to-end quality;
-- multilingual or cross-domain use without separate evaluation;
-- autonomous decisions in employment, credit, health, legal, safety, or other consequential settings;
-- processing sensitive text without application-level privacy controls.
+### Planned training protocol
+
+The fixed experiment contract requires:
+
+- exact model and tokenizer repository revisions, never mutable branch names;
+- one prepared-data fingerprint shared by both variants;
+- a training-derived immutable label order;
+- AdamW, gradient clipping, optional linear warmup, then constant learning rate;
+- deterministic batches and exactly three paired seeds;
+- paired initial-state fingerprints and otherwise identical configurations;
+- development-only checkpoint selection; and
+- one test evaluation for each predeclared final seed/variant run.
+
+The original anchor is batch size 32, learning rate `1e-5`, and two epochs.
+Those values are not yet a runnable checked-in neural configuration because an
+authorized prepared-data fingerprint does not exist. Any hardware-driven change
+must be declared before final outcomes.
+
+The installed `semantic-action-train-srl` command accepts the two strict paired
+configs, prepared dataset, new Git-ignored output root, and exact 40-character
+Git revision. It validates the data fingerprint before execution, stages all
+six seed/variant runs, records a non-sensitive partial failure marker if needed,
+and atomically publishes canonical results only after all runs complete.
 
 ### Evaluation contract
 
-The only implemented metric is generic micro exact labeled-span precision, recall, and F1 over word-level BIO sequences, excluding supplied-predicate `V` and continuation `C-V` spans and reporting repaired prediction tags. Planned public evaluation must report gold pointer-to-span conversion coverage and every unsupported or dropped source construct. Per-role results, candidate detection, token accuracy, latency, memory, and seed variation remain pending.
+The primary metric is micro-averaged exact labeled argument-span precision,
+recall, and F1. Predicate `V` and `C-V` spans are excluded because the predicate
+is supplied. No partial credit is given for a correct label with the wrong
+boundary or a correct boundary with the wrong label.
 
-Token accuracy is diagnostic only because frequent `O` labels can conceal poor argument extraction.
+Secondary outputs are per-role P/R/F1 and support, deterministic BIO-repair
+counts, word-level token accuracy, and diagnostics for correct/missing predicate
+anchors, spurious predicate labels, and predicted argument spans overlapping
+the predicate. Token accuracy is diagnostic because frequent `O` labels can
+hide poor role extraction.
+
+Future raw-text reporting must separately measure predicate candidates and
+downstream role frames. It may not reuse supplied-predicate F1 as an end-to-end
+claim.
+
+### Intended uses
+
+- controlled research on supplied-predicate English SRL;
+- a bounded predicate-conditioning ablation;
+- source-grounded role extraction with human review after authorized training;
+- a downstream component after independently measured predicate discovery.
+
+### Out-of-scope and prohibited interpretations
+
+- treating `ARG0` and `ARG1` as universal actor and patient labels;
+- claiming performance on raw text from a supplied-predicate result;
+- assuming child-directed parental speech represents operational domains;
+- multilingual or cross-domain use without separate evaluation;
+- autonomous decisions in consequential settings; and
+- processing sensitive text without application-level privacy controls.
 
 ### Risks and mitigations
 
-- **Boundary fidelity:** preserve exact annotated constituents and count every pointer or overlap that cannot be represented faithfully as word-level BIO.
-- **Role overinterpretation:** preserve PropBank labels before any convenience mapping.
-- **Predicate assumption:** report supplied-predicate and end-to-end evaluation independently.
-- **Domain shift:** require representative authorized evaluation before a deployment claim.
-- **Opaque errors:** retain source tokens, terminal-to-word mappings, labels, error categories, and—when available—character offsets for inspection.
-- **Data rights:** keep datasets outside Git and review checkpoint redistribution separately.
+- **Boundary fidelity:** fail closed when a source proposition cannot fit one
+  exact word-level BIO sequence; report every rejection reason.
+- **Leakage:** freeze documents before outcomes, exclude exact text crossing
+  splits, deduplicate evaluation semantics, and validate prepared manifests.
+- **Role overinterpretation:** preserve PropBank labels before any convenience
+  action mapping.
+- **Predicate assumption:** keep controlled and raw-text metrics separate.
+- **Domain shift:** require representative authorized evaluation before any use
+  claim outside BabySRL's child-directed-speech domain.
+- **Reproducibility:** bind each run to data/config/Git fingerprints, package and
+  hardware metadata, seeds, devices, counts, and initial model state.
+- **Checkpoint integrity:** save labels and canonical metadata beside a state
+  dictionary and verify its SHA-256 before loading.
+- **Data rights and privacy:** keep raw/prepared data outside Git and perform a
+  separate checkpoint-release and memorization review.
 
-### Known source-format gaps
+### Checkpoint and release status
 
-The MASC audit exposed three unimplemented source-format cases in the generic
-converter: two unlabeled PTB wrapper serializations, mixed semicolon/trace-chain
-pointers, and LINK anchoring that cannot be validated by exact pointer identity
-alone. These are recorded engineering gaps, not the basis for rejecting MASC;
-the corpus still misses the 99% exact-span threshold under optimistic repair.
-Future fixes require source-neutral rules and wholly invented regression
-fixtures. They must not infer controllers for trace-only arguments.
+There is no checkpoint. The checkpoint code refuses incompatible metadata,
+configuration, labels, or a changed state-dictionary hash; that integrity
+contract does not grant redistribution rights.
+
+Checkpoint redistribution remains on hold until the then-current TalkBank and
+source-corpus terms, intended use, encoder license, privacy and memorization
+risks, required attribution, checkpoint license, and distribution channel have
+all received an affirmative written review.
 
 ## Results statement
 
-Automated tests verify schema validation, exact offsets, baseline behavior, documented PropBank record and pointer conversion, BIO transformations, gold-label alignment, model-construction behavior through injected fakes, and generic metric calculations. They do not establish extraction accuracy.
-
-No trained model result, operational-readiness claim, or redistributable checkpoint is available in the current repository state.
+No development score, test score, ablation effect, error-analysis result,
+systems benchmark, operational-readiness claim, or redistributable checkpoint
+is available. The values in the BabySRL audit are data-conversion counts only.
