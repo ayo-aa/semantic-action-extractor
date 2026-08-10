@@ -14,7 +14,7 @@ QA-SRL Bank 2.1, QA-SRL Gold Standard, and QANom are the selected research sourc
 | Manifests, canonical readers, and quarantine | Implemented | Round-trip, atomicity, drift, overlap, and full-corpus checks | Apply to every future training artifact |
 | Consolidation and scorer contracts | Implemented | Boundary, matching, duplicate, role, qualifier, and serialization fixtures; reference-compatible contracts unchanged | Model prediction regression and corpus results |
 | Mention-qualifier representation and primary metrics | Implemented | Optional public, canonical, and evaluation-bundle fields with exact cue grounding; primary-only label and exact-evidence F1 fixtures | Annotated challenge records and model predictions |
-| Operational-style challenge set | Candidate pilot materials ready | Candidate protocol, annotation guide, source-and-rights notice, and pilot workbook | Author 20 pilot notes; complete independent annotation, adjudication, split assignment, and freeze |
+| Operational-style challenge set | Twenty synthetic pilot notes accepted; annotation pending | Candidate protocol, annotation guide, source-and-rights notice, and populated pilot workbook | Finalize the annotation conversion contract; complete human repeat and independent annotation, adjudication, split assignment, and freeze |
 
 ## Answer to the primary research question
 
@@ -94,7 +94,7 @@ An unassessed predicate is excluded from gold qualifier scoring; an assessed pre
 | Naturally unseen predicate families | TK | TK | TK | TK | Pending |
 | Controlled held-out families | TK | TK | TK | TK | Pending |
 | Size-matched source-domain transfer | TK | TK | TK | TK | Pending |
-| Frozen operational-style set | TK | TK | TK | TK | Candidate pilot materials ready; 20 notes, independent annotation, adjudication, and freeze pending |
+| Frozen operational-style set | TK | TK | TK | TK | Twenty candidate-pilot notes accepted; human and independent annotation, adjudication, and freeze pending |
 
 ## Calibration and confidence–coverage behavior
 

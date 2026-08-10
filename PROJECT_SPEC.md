@@ -108,7 +108,7 @@ Primary references:
 
 A small, frozen challenge set will test constructions resembling support and operations notes that the research corpora may not represent. It will contain newly authored or explicitly licensed text. Unless it contains representative real operational text, results will be described as **operational-style** performance rather than proof of operational-domain performance.
 
-Candidate pilot materials are prepared: the protocol, annotation guide, source-and-rights notice, and authoring/annotation workbook. The 20 newly authored pilot notes, repeat annotation passes, independent annotation, adjudication, final exclusions, held-out split, and freeze are still pending. Candidate materials do not authorize model selection or complete E1.
+Candidate pilot materials are prepared: the protocol, annotation guide, source-and-rights notice, and authoring/annotation workbook. The workbook now contains 20 original synthetic operational-style notes accepted for candidate-pilot publication under explicit protocol-level delegation, with complete rights, privacy, lineage, phenomenon, and predicate-family metadata. No direct note-level review or human annotation pass has occurred. The annotation representation still requires a tested row/grouping and conversion contract before pass 1; repeat annotation, independent annotation, adjudication, final exclusions, held-out splits, and freeze remain pending. Candidate materials do not authorize model selection or complete E1.
 
 ### Data controls
 
@@ -178,7 +178,7 @@ The canonical research output preserves QA-SRL role questions. An optional downs
 - Construct, annotate, adjudicate, and freeze the operational-style challenge set before model selection uses it.
 - Add document, sentence, predicate-family, and derived-example leakage checks.
 
-The adapters, manifests, canonical readers, full-release validation, fixed training quarantine, named consolidation, evaluation bundles, three scorer contracts, optional source-grounded mention-qualifier fields, and primary-only qualifier metrics are implemented. Candidate pilot protocol, guide, source-rights notice, and workbook are ready. The 20 pilot notes, independent annotation, adjudication, final split, and freeze remain pending, so E1 remains incomplete.
+The adapters, manifests, canonical readers, full-release validation, fixed training quarantine, named consolidation, evaluation bundles, three scorer contracts, optional source-grounded mention-qualifier fields, and primary-only qualifier metrics are implemented. Candidate pilot protocol, guide, source-rights notice, and 20 accepted synthetic notes are ready. Human annotation and its tested workbook-to-evaluation contract, repeat annotation, independent annotation, adjudication, final split, and freeze remain pending, so E1 remains incomplete.
 
 ### E2: QASem generative reproduction
 

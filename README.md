@@ -154,7 +154,7 @@ Dataset preparation uses an evidence-preserving canonical representation that re
 
 QANom development and test sentences intentionally overlap QA-SRL Gold Standard source material within the same evaluation role. A release-wide comparison found no development-to-test identity overlap, but it found 11 exact sentence texts copied from training material into the selected development or test protocol under different source and document IDs. The fixed `cross-role-document-quarantine-v1` policy preserves evaluation unchanged and excludes every training sentence from the seven affected training documents across both tasks.
 
-The operational-style challenge set will be authored or explicitly licensed, annotated, adjudicated, and frozen before model comparisons use it. A versioned [pilot protocol](docs/challenge_set/protocol.md), [annotation guide](docs/challenge_set/annotation_guide.md), [rights template](docs/challenge_set/source_notice_template.md), and [20-record workbook](docs/challenge_set/pilot_worksheets.xlsx) are now prepared; no pilot note has been accepted yet. Without a second human annotator, the pilot can refine the guide but E1 cannot be called independently annotated, adjudicated, or frozen. Unless representative real operational text is available, the report will not describe it as proof of operational-domain performance.
+The operational-style challenge set will be authored or explicitly licensed, annotated, adjudicated, and frozen before model comparisons use it. A versioned [pilot protocol](docs/challenge_set/protocol.md), [annotation guide](docs/challenge_set/annotation_guide.md), [rights notice](docs/challenge_set/source_notice_template.md), and [20-record workbook](docs/challenge_set/pilot_worksheets.xlsx) are now prepared. The workbook contains 20 original synthetic notes accepted for candidate-pilot publication under explicit protocol-level delegation; its metadata records that no direct note-level review occurred. Rights, privacy, lineage, scenario, phenomenon, and predicate-family fields are complete, but the human annotation passes have not begun. Without a second human annotator, the pilot can refine the guide but E1 cannot be called independently annotated, adjudicated, or frozen. Unless representative real operational text is available, the report will not describe it as proof of operational-domain performance.
 
 ## Evaluation
 
@@ -177,7 +177,7 @@ Every neural comparison uses at least three paired seeds and reports the mean an
 | Study | Purpose | Status |
 | --- | --- | --- |
 | E0: Software and rule baseline | Establish the interface, deterministic lower bound, and error taxonomy. | Implemented; corpus evaluation pending. |
-| E1: Annotation, scorer, and challenge-set layer | Preserve QA-SRL/QANom evidence, reproduce metrics, and freeze operational-style evaluation. | Adapters, manifests, scans, quarantine, bundles, scorer contracts, qualifier schema, and pilot materials implemented; authored and independently annotated challenge data pending. |
+| E1: Annotation, scorer, and challenge-set layer | Preserve QA-SRL/QANom evidence, reproduce metrics, and freeze operational-style evaluation. | Adapters, manifests, scans, quarantine, bundles, scorer contracts, qualifier schema, and 20 accepted synthetic pilot notes implemented; human annotation, format finalization, independent annotation, adjudication, and freeze pending. |
 | E2: QASem reproduction | Establish the T5-small generative comparison on the verified preparation. | Pending. |
 | E3: Structured verbal parser | Train span detection and seven-slot question prediction on verbal QA-SRL. | Pending. |
 | E3.5: Verbal raw-text vertical slice | Connect a simple verbal candidate layer to the trained parser and measure evidence-linked output, stage errors, and latency before the broader ablations. | Pending. |
@@ -249,7 +249,7 @@ The research datasets do not establish performance on a company’s tickets, ema
 - Surface roles describe location, not semantic meaning.
 - The baseline attaches conservative lexical mention qualifiers but does not reliably resolve their scope, passive voice, coordination, coreference, implicit arguments, or predicate senses.
 - QA-SRL and QANom use research domains rather than real operational notes.
-- The operational-style pilot materials exist, but the notes are not yet authored or independently annotated and no scored set is adjudicated or frozen, so E1 is not complete.
+- The operational-style pilot contains 20 accepted synthetic notes, but no human annotation pass, independent annotation, adjudication, or freeze has occurred, so it is not a scored set and E1 is not complete.
 - Supplied-predicate extraction is only a component evaluation; the raw-text candidate and classification stages are required for any complete-system claim.
 - The optional product-facing role adapter is not yet implemented or evaluated.
 - The neural study fine-tunes pretrained models; it does not pretrain a foundation model from random weights.

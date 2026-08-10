@@ -61,6 +61,12 @@ and `negated`, each with its own cue evidence.
 Do not use these labels to say that the event happened. An empty qualifier list
 means no supported cue was annotated, not that the event is true or complete.
 
+The workbook records qualifier assessment explicitly. Set
+`qualifier_assessed` to `false` and leave every qualifier field blank when the
+assessment was not performed. Set it to `true` with blank qualifier fields when
+assessment found no supported cue, or to `true` with populated qualifier fields
+when cues were found. Non-eventive nominal candidates use `false`.
+
 When scope is unresolved—for example, `Maya does not have to approve`—mark the
 item ambiguous and exclude it from the scored set unless the guide is revised
 before freezing.
@@ -92,3 +98,11 @@ Examples:
 
 The comparison is intra-annotator repeatability only. Do not call it independent
 agreement or adjudication.
+
+## Workbook readiness
+
+The 20 Authoring rows are accepted for candidate-pilot publication. The
+Annotation sheet is provisional and must remain blank until a tested conversion
+contract defines repeated rows, question-and-answer grouping, safe derivation or
+validation of token offsets and identifiers, and conversion into the evaluation
+types. Human pass 1 begins only after that contract is implemented and verified.

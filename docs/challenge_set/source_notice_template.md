@@ -1,19 +1,24 @@
 # Challenge-set source and rights notice
 
-Status: template; no challenge records are covered until every field is
-completed and reviewed.
+Status: covers the 20 candidate-pilot Authoring rows. Human annotation and any
+future scored release remain pending.
 
 - Dataset name: Operational-style event-mention challenge set
 - Release: candidate pilot
-- Text author or source selector: Ayo Adetayo
-- Rights basis for newly authored text: to be confirmed by Ayo before release
-- Third-party sources: none permitted without a recorded license and source link
-- Private or customer data: prohibited
-- Personal data: prohibited
-- School or restricted course material: prohibited
-- Privacy review completed: no
-- Public release approved by Ayo: no
-- Review date: pending
+- Project author and release decision-maker: Ayo Adetayo
+- Text origin: original synthetic operational-style notes
+- Acceptance basis: explicit protocol-level delegation on 2026-08-09
+- Direct note-level review by Ayo: no
+- Rights basis: project-authored text released under the repository MIT License
+- Third-party sources: none
+- Private or customer data: none; prohibited
+- Personal data: none; prohibited
+- School or restricted course material: none; prohibited
+- Privacy review completed: yes
+- Candidate-pilot public release accepted under delegation: yes
+- Review date: 2026-08-09
 
-Each record must identify its rights basis. Records with missing, uncertain, or
-incompatible rights are excluded before any candidate set is sealed.
+Each workbook record identifies its rights basis, source reference, license,
+privacy review, and release decision. This notice does not make the pilot
+independently annotated, adjudicated, gold, frozen, or evidence of performance
+on real operational data.

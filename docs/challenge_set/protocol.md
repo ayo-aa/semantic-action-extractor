@@ -2,8 +2,9 @@
 
 Protocol version: `candidate-pilot-v1`
 
-Status: pilot preparation. This protocol does not complete E1 and does not
-authorize model selection on challenge data.
+Status: candidate note authoring complete; human annotation pending. This
+protocol does not complete E1 and does not authorize model selection on
+challenge data.
 
 ## Purpose
 
@@ -21,10 +22,13 @@ completion, assignment, commitment, ownership, due dates, or execution.
 
 ## Pilot design
 
-The pilot contains 20 newly authored records and is excluded from all reported
-challenge results. Ayo Adetayo authors or personally approves every raw note.
-The notes contain no copied tickets, private correspondence, customer data,
-school material, or identifying personal information.
+The pilot contains 20 newly authored synthetic records and is excluded from all
+reported challenge results. The records were accepted for candidate-pilot
+publication under Ayo Adetayo's explicit protocol-level delegation on
+2026-08-09; no direct note-level review occurred. This delegation is not an
+independent annotation, adjudication, or freeze decision. The notes contain no
+copied tickets, private correspondence, customer data, school material, or
+identifying personal information.
 
 Four records are planned for each scenario:
 
@@ -40,10 +44,12 @@ long-distance arguments, and non-eventive nominal candidates. Tags may overlap.
 
 ## Annotation passes without a second annotator
 
-Ayo completes pass 1, then repeats the same pilot after a 7–14 day washout. Pass
-2 uses a shuffled record order and is completed without viewing pass 1 or any
-model output. Differences are used only to revise this guide and report
-intra-annotator repeatability.
+A human annotator completes pass 1, then repeats the same pilot after a 7–14 day
+washout. Pass 2 uses a shuffled record order and is completed without viewing
+pass 1 or any model output. Differences are used only to revise this guide and
+report intra-annotator repeatability. The workbook's Annotation sheet remains
+blank until a tested row/grouping and workbook-to-evaluation conversion contract
+is in place.
 
 This procedure is not independent annotation, inter-annotator agreement, or
 adjudication. The pilot cannot be called gold, final, or frozen.

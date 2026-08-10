@@ -6,7 +6,7 @@ The current rule baseline is not trained and requires no dataset. It processes t
 
 The package does not retain, transmit, or log input text. Shell history, calling applications, notebooks, and deployment environments can have separate retention behavior.
 
-No QA-SRL, QANom, OntoNotes, operational, raw, or processed dataset is currently committed to this repository. The challenge-set workbook is an empty annotation template, not an operational dataset.
+No QA-SRL, QANom, OntoNotes, private operational, or processed corpus is currently committed to this repository. The challenge-set workbook contains 20 newly authored synthetic operational-style notes accepted for candidate-pilot publication; it is neither real operational data nor a scored, adjudicated, or frozen dataset.
 
 ## Planned research data
 
@@ -17,7 +17,7 @@ The neural study uses pinned downloads, checksum verification, safe extraction, 
 | QA-SRL Bank 2.1 | Verbal training predicates, role questions, and answer spans | Adapter implemented; every release split and layer processed successfully | No raw or processed records in Git; annotation and source-text redistribution unresolved |
 | QA-SRL Gold Standard | Primary verbal development and test evaluation | Adapter and compatible scorer implemented; both verified splits processed successfully | No raw or processed records in Git; annotation and source-text redistribution unresolved |
 | QANom | Nominal predicate detection, role questions, and answer spans | Adapter and reference scorer implemented; all three verified splits processed successfully | No raw or processed records in Git; annotation and source-text redistribution unresolved |
-| Operational-style challenge set | Held-out support and operations constructions | Candidate pilot protocol, guide, rights template, and empty 20-record workbook prepared; no note accepted | Only newly authored or explicitly licensed text qualifies |
+| Operational-style challenge set | Held-out support and operations constructions | Candidate pilot protocol, guide, rights notice, and 20 accepted synthetic notes prepared; annotation pending | Only newly authored or explicitly licensed text qualifies |
 
 The [QA-SRL data card](docs/datasets/qa_srl.md) and [QANom data card](docs/datasets/qanom.md) record exact archive checksums, split statistics, scorer behavior, and unresolved rights.
 
@@ -47,9 +47,9 @@ The evaluation set remains pending. The repository now contains candidate pilot 
 - a versioned protocol;
 - a predicate, role, and mention-qualifier annotation guide;
 - a source-and-rights notice template; and
-- a 20-record pilot workbook with no accepted note text or annotation.
+- a 20-record pilot workbook with accepted synthetic note text and complete authoring, rights, privacy, and lineage metadata; its annotation and review sheets remain empty.
 
-These materials prepare the annotation process but do not constitute a collected, labeled, adjudicated, or frozen dataset. The source-and-rights notice is still a template: it does not cover any record and does not itself approve public release.
+These materials prepare the annotation process but do not constitute a labeled, adjudicated, or frozen dataset. The source-and-rights notice covers the 20 candidate-pilot notes and records their delegated release acceptance; it does not approve any future scored release.
 
 Any future challenge text can contain only:
 
@@ -61,9 +61,9 @@ The set excludes copied company tickets, private email, meeting transcripts, per
 
 Each retained event mention can carry zero or more predicate-local qualifiers from the controlled kinds `negated`, `possible`, `necessary`, `planned`, `future`, `hypothetical`, `conditional`, `questioned`, and `reported`. Every populated qualifier must cite one or more exact source spans. In both the public and annotation schemas, `null` means qualifiers were not assessed, an empty list means assessment found no supported cue, and a populated list contains the assessed labels and their evidence. These annotations describe how the text frames a mention; they never establish truth, occurrence, completion, assignment, ownership, due dates, or execution status.
 
-The candidate guide defines predicate eligibility, verbal and nominal types, role questions, answer boundaries, mention-qualifier cues, ambiguous cases, and exclusions. Its 20-record pilot is reserved for guide development and is excluded from reported challenge results. Ayo will annotate it twice after a 7–14 day washout, with shuffled order and without viewing the first pass or model output. That comparison can measure only intra-annotator repeatability.
+The candidate guide defines predicate eligibility, verbal and nominal types, role questions, answer boundaries, mention-qualifier cues, ambiguous cases, and exclusions. Its 20-record pilot is reserved for guide development and is excluded from reported challenge results. Before annotation begins, the flat workbook representation needs a tested row/grouping and conversion contract so source offsets, qualifier assessment state, grouped answers, and question metadata are not lost. A human annotator must then complete two passes after a 7–14 day washout, with shuffled order and without viewing the first pass or model output. That comparison can measure only intra-annotator repeatability.
 
-No pilot note has been accepted, no second human annotator is available, and no independent annotation or disagreement adjudication has occurred. The proposed 50-record development and 150-record test sets have not been created, sealed, or used for model selection. E1 remains incomplete, and no challenge-set performance claim is available.
+All 20 synthetic notes are accepted for candidate-pilot publication under explicit protocol-level delegation, but no direct note-level review or human annotation pass has occurred. No second human annotator is available, and no independent annotation or disagreement adjudication has occurred. The proposed 50-record development and 150-record test sets have not been created, sealed, or used for model selection. E1 remains incomplete, and no challenge-set performance claim is available.
 
 Before any scored challenge set can be called frozen, a second human must independently annotate every retained development and test record without seeing Ayo’s labels or model predictions; pre-resolution agreement and every disagreement resolution must be recorded; and the final text, labels, exclusions, splits, and fingerprints must be regenerated. Until then, no candidate artifact is gold, adjudicated, or frozen. Unless representative real operational text is available under appropriate terms, reports call the eventual set **operational-style** rather than evidence of operational-domain performance.
 
