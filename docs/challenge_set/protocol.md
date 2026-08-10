@@ -2,9 +2,9 @@
 
 Protocol version: `candidate-pilot-v1`
 
-Status: candidate note authoring complete; human annotation pending. This
-protocol does not complete E1 and does not authorize model selection on
-challenge data.
+Status: candidate note authoring and the normalized workbook conversion
+contract are implemented and tested; human annotation is pending. This protocol
+does not complete E1 and does not authorize model selection on challenge data.
 
 ## Purpose
 
@@ -47,9 +47,12 @@ long-distance arguments, and non-eventive nominal candidates. Tags may overlap.
 A human annotator completes pass 1, then repeats the same pilot after a 7–14 day
 washout. Pass 2 uses a shuffled record order and is completed without viewing
 pass 1 or any model output. Differences are used only to revise this guide and
-report intra-annotator repeatability. The workbook's Annotation sheet remains
-blank until a tested row/grouping and workbook-to-evaluation conversion contract
-is in place.
+report intra-annotator repeatability. Each pass uses a separate workbook with
+one annotator/pass identity. The implemented validator and converter preserve
+the normalized candidate, qualifier-evidence, question, and answer-span tables
+without relying on worksheet row order. Both per-pass workbooks keep the Review
+Log inactive; after they have validated and converted, differences are recorded
+in the Review Log of a separate comparison copy that is not converter input.
 
 This procedure is not independent annotation, inter-annotator agreement, or
 adjudication. The pilot cannot be called gold, final, or frozen.
@@ -69,6 +72,22 @@ The qualifier kinds are `negated`, `possible`, `necessary`, `planned`, `future`,
 predicate-local and can co-occur. `None` means qualifier assessment was not
 performed; an empty list means assessment was performed and no supported cue
 was found.
+
+The workbook records one candidate per `Annotation` row. Independent
+`Qualifier Evidence`, `Questions`, and `Answer Spans` tables use explicit
+candidate, question, alternative, and span-order identifiers. Exact character
+spans are checked against the pinned note text and mapped to token spans with the
+frozen `pilot-source-tokenizer-v1` contract. A completed pass converts directly
+to an evaluation bundle marked as single-annotator, guide-development-only, and
+not for model selection.
+
+If an annotation decision excludes any candidate, the fixed
+`challenge-record-quarantine-v1` policy removes the entire source record from
+the scorer-ready corpus. This prevents an ignored candidate from becoming a
+prediction-only false positive while retaining source and decision metadata for
+audit. The same source IDs must be absent from prediction bundles.
+Prediction bundles must also declare the matching Authoring fingerprint and
+tokenizer version before scoring.
 
 ## Evaluation contracts
 
@@ -90,11 +109,14 @@ records, with no challenge-set training split. Documents, exact or derived
 texts, template families, and predicate families remain within one split. Test
 text and labels remain hidden from model and threshold selection.
 
-E1 can be completed only after a second human independently labels 100% of the
-retained development and test records without seeing Ayo's labels or model
-predictions. Pre-resolution agreement and every disagreement resolution must be
-recorded. Final text, annotations, exclusions, split assignments, and SHA-256
-fingerprints are regenerated afterward; only that artifact may be named
+No second annotator is available for this pilot. It therefore remains a
+guide-development exercise excluded from model selection and reported results,
+even after the repeat pass. A future scored challenge set would require a
+separate independent annotation effort covering 100% of retained development
+and test records without exposure to Ayo's labels or model predictions.
+Pre-resolution agreement and every disagreement resolution would need to be
+recorded, followed by regenerated text, annotation, exclusion, split, and
+SHA-256 fingerprints. Only that independently reviewed artifact could be named
 `frozen-v1`.
 
 ## Stop conditions

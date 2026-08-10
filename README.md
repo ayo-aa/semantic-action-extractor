@@ -104,15 +104,18 @@ flowchart TB
     D --> J["Mention qualifier kinds and cue spans"]
     Q["QA-SRL and QANom supervision"] -.-> E
     Q -.-> F
-    R["Operational-style qualifier annotation"] -.-> J
+    S["Qualifier training supervision (unresolved)"] -.-> J
     E --> G["Source-grounded event records"]
     F --> G
     J --> G
+    J -.-> R["Future independent qualifier evaluation"]
     G --> H["Exact evidence offsets, mention qualifiers, and confidence"]
     G --> I["Optional evaluated product-role adapter"]
 ```
 
 QA-SRL and QANom enter through the dashed training and evaluation path. At inference, the system receives raw text rather than a user-supplied question. This raw-text system contains four separately measured decisions. Candidate generation proposes possible verbs and nouns. Predicate classification determines which candidates express in-scope events; for QANom nouns, this includes deciding whether the noun is **eventive**, meaning that it actually describes an event in that sentence. Mention qualification identifies supported linguistic framing and its exact cues without inferring occurrence or workflow status. Argument extraction then analyzes one positive predicate at a time. Supplying the correct predicate is useful for component diagnosis but cannot stand in for the complete-pipeline result.
+
+The learned qualifier head remains a research target: QA-SRL and QANom do not provide complete qualifier labels, and the candidate pilot is excluded from training and model selection. A separate licensed training annotation source must be designed before that head is trained; any future independently annotated challenge labels are evaluation references only.
 
 The structured neural parser uses one contextual encoder with three learned outputs. The argument-span head finds answer boundaries in the source. The question head predicts the seven constrained QA-SRL slots—such as the question word, auxiliary, subject placeholder, verb form, object placeholders, and preposition—and code deterministically realizes the final question. The mention-qualifier head predicts controlled framing labels and selects their cue evidence from the same source. Several spans can remain grouped under one role question or one qualifier through explicit grouped evidence.
 
@@ -143,6 +146,10 @@ flowchart LR
     E --> G["Named judgment consolidation"]
     F --> G
     G --> H["Versioned evaluation bundle"]
+    J["Accepted pilot workbook"] --> K["Four normalized annotation tables"]
+    K --> L["Strict one-pass validation and conversion"]
+    L --> M["Single-annotator guide-only bundle"]
+    M --> N["Primary scorer diagnostics only"]
     H --> I["Primary or reference-compatible scorer"]
 ```
 
@@ -154,13 +161,15 @@ Dataset preparation uses an evidence-preserving canonical representation that re
 
 QANom development and test sentences intentionally overlap QA-SRL Gold Standard source material within the same evaluation role. A release-wide comparison found no development-to-test identity overlap, but it found 11 exact sentence texts copied from training material into the selected development or test protocol under different source and document IDs. The fixed `cross-role-document-quarantine-v1` policy preserves evaluation unchanged and excludes every training sentence from the seven affected training documents across both tasks.
 
-The operational-style challenge set will be authored or explicitly licensed, annotated, adjudicated, and frozen before model comparisons use it. A versioned [pilot protocol](docs/challenge_set/protocol.md), [annotation guide](docs/challenge_set/annotation_guide.md), [rights notice](docs/challenge_set/source_notice_template.md), and [20-record workbook](docs/challenge_set/pilot_worksheets.xlsx) are now prepared. The workbook contains 20 original synthetic notes accepted for candidate-pilot publication under explicit protocol-level delegation; its metadata records that no direct note-level review occurred. Rights, privacy, lineage, scenario, phenomenon, and predicate-family fields are complete, but the human annotation passes have not begun. Without a second human annotator, the pilot can refine the guide but E1 cannot be called independently annotated, adjudicated, or frozen. Unless representative real operational text is available, the report will not describe it as proof of operational-domain performance.
+An operational-style challenge set must be authored or explicitly licensed, independently annotated, adjudicated, and frozen before model comparisons use it. A versioned [pilot protocol](docs/challenge_set/protocol.md), [annotation guide](docs/challenge_set/annotation_guide.md), [rights notice](docs/challenge_set/source_notice_template.md), and [20-record workbook](docs/challenge_set/pilot_worksheets.xlsx) are now prepared. The workbook contains 20 original synthetic notes accepted for candidate-pilot publication under explicit protocol-level delegation; its metadata records that no direct note-level review occurred. Rights, privacy, lineage, scenario, phenomenon, and predicate-family fields are complete. The normalized workbook contract, frozen tokenizer, accepted-source fingerprint, validator, and one-pass evaluation-bundle converter are implemented and tested, but the human annotation passes have not begun. Converter output is explicitly single-annotator, guide-development-only, and excluded from model selection. Without a second human annotator, the pilot can refine the guide but cannot become an independently annotated, adjudicated, or frozen benchmark. Unless representative real operational text is available, the report will not describe it as proof of operational-domain performance.
 
 ## Evaluation
 
 The primary research extraction measure is labeled QA-pair F1: a prediction must identify an answer with token intersection-over-union of at least `0.5` and assign the same seven-slot role question. Unlabeled F1 shows whether the system found the right answer even when its question was wrong, while exact token-span and exact character-span F1 require identical boundaries. Exact source validity measures whether every returned answer truly maps to the original text. Candidate, predicate, and raw-text record metrics are reported separately so a supplied-predicate score is never presented as end-to-end system quality.
 
 The scorer-ready gold view uses `valid-judgment-union-v1`. Raw judgments remain preserved; a question enters the evaluation view when at least one judgment marks it valid, and distinct answer alternatives from valid judgments are unioned. Exact duplicates count once. A retained valid judgment with no answer is counted but does not create an invented span, and questions attached to an upstream non-eventive nominal remain recorded as anomalies without becoming gold QA pairs.
+
+The candidate-pilot workbook follows a separate `pilot-single-annotation-v1` path because it contains one human pass rather than QA-SRL/QANom release judgments. Its four normalized annotation tables convert directly to a guide-development evaluation bundle. If any candidate is excluded, `challenge-record-quarantine-v1` omits that entire source from the reference-side evaluation input. Evaluation requires comparison bundles to declare the matching source fingerprint and tokenizer version and refuses bundles that still contain a quarantined source.
 
 Three named scoring contracts prevent prior-work comparison from being confused with the project’s main result. `primary-end-to-end-v1` evaluates the union of gold and predicted predicate keys, uses maximum-cardinality then maximum-IoU matching, and charges missed or spurious predicates to downstream counts. `qasrl-gs-compatible-v1` uses the Gold Standard predicate scope, inclusive `0.5` overlap, and a frozen five-field question-equivalence rule; it is compatible with the checked reference but is not claimed as byte-for-byte official because that revision is missing a callable dependency. `qanom-reference-v1` preserves QANom’s inner join, strict overlap greater than `0.3`, greedy span-value matching, coarse roles, role alignment, and omission of argument counts when eventivity disagrees.
 
@@ -177,7 +186,7 @@ Every neural comparison uses at least three paired seeds and reports the mean an
 | Study | Purpose | Status |
 | --- | --- | --- |
 | E0: Software and rule baseline | Establish the interface, deterministic lower bound, and error taxonomy. | Implemented; corpus evaluation pending. |
-| E1: Annotation, scorer, and challenge-set layer | Preserve QA-SRL/QANom evidence, reproduce metrics, and freeze operational-style evaluation. | Adapters, manifests, scans, quarantine, bundles, scorer contracts, qualifier schema, and 20 accepted synthetic pilot notes implemented; human annotation, format finalization, independent annotation, adjudication, and freeze pending. |
+| E1: Annotation, scorer, and challenge-set layer | Preserve QA-SRL/QANom evidence, reproduce metrics, and freeze operational-style evaluation. | Adapters, manifests, scans, quarantine, bundles, scorer contracts, qualifier schema, normalized pilot converter, and 20 accepted synthetic notes implemented; human pass 1 and repeat remain pending, while an independent benchmark, adjudication, and freeze are unavailable without a second annotator. |
 | E2: QASem reproduction | Establish the T5-small generative comparison on the verified preparation. | Pending. |
 | E3: Structured verbal parser | Train span detection and seven-slot question prediction on verbal QA-SRL. | Pending. |
 | E3.5: Verbal raw-text vertical slice | Connect a simple verbal candidate layer to the trained parser and measure evidence-linked output, stage errors, and latency before the broader ablations. | Pending. |
@@ -188,7 +197,7 @@ Every neural comparison uses at least three paired seeds and reports the mean an
 
 ## Results status
 
-The current evidence establishes data-pipeline and software behavior only. The complete suite contains 115 tests covering schema validation, exact grounding, mention-qualifier cues, archive verification and safe extraction, atomic artifact publication, strict adapter behavior, canonical JSONL round trips, manifest determinism, source-change detection, split leakage, document quarantine, consolidation anomalies, matching boundaries, question equivalence, scorer contracts, reusable evaluation bundles, and all three CLIs.
+The current evidence establishes data-pipeline and software behavior only. The complete suite contains 130 tests covering schema validation, exact grounding, mention-qualifier cues, archive verification and safe extraction, atomic artifact publication, strict adapter behavior, canonical JSONL round trips, manifest determinism, source-change detection, split leakage, document quarantine, consolidation anomalies, matching boundaries, question equivalence, scorer contracts, reusable evaluation bundles, strict pilot-workbook validation and conversion, record quarantine, and all three CLIs.
 
 Full scans of every selected release file reproduce the documented QA-SRL and QANom record, candidate, question, and judgment counts. They also preserve and report one QA-SRL valid judgment with no answer span; 24 exact duplicate QANom training QA rows; 57 QANom development eventivity/question conflicts; one reconstructed missing QANom development answer string; case-normalized noun fields; and 1,141 nonempty values from the accidental QANom test index column. These are preparation findings, not model-quality results.
 
@@ -225,7 +234,7 @@ TK: Quantify nominal transfer and paired verbal change under equal compute and t
 
 ### Generalization finding
 
-TK: Report naturally unseen and controlled held-out predicate families, size-matched source-domain transfer, and the frozen operational-style set.
+TK: Report naturally unseen and controlled held-out predicate families and size-matched source-domain transfer. Report a frozen operational-style set only if a future independent annotation effort makes one available.
 
 ### Practical recommendation
 
@@ -249,7 +258,7 @@ The research datasets do not establish performance on a company’s tickets, ema
 - Surface roles describe location, not semantic meaning.
 - The baseline attaches conservative lexical mention qualifiers but does not reliably resolve their scope, passive voice, coordination, coreference, implicit arguments, or predicate senses.
 - QA-SRL and QANom use research domains rather than real operational notes.
-- The operational-style pilot contains 20 accepted synthetic notes, but no human annotation pass, independent annotation, adjudication, or freeze has occurred, so it is not a scored set and E1 is not complete.
+- The operational-style pilot contains 20 accepted synthetic notes and a tested one-pass converter, but no human annotation pass has occurred. It remains guide-development-only; no independent annotation, adjudication, or freeze is possible without a second annotator, so it is not a scored set and E1 is not complete.
 - Supplied-predicate extraction is only a component evaluation; the raw-text candidate and classification stages are required for any complete-system claim.
 - The optional product-facing role adapter is not yet implemented or evaluated.
 - The neural study fine-tunes pretrained models; it does not pretrain a foundation model from random weights.
@@ -394,6 +403,28 @@ semantic-action-data consolidate \
     data/processed/qanom-train-gold.json \
     --manifest data/processed/qanom-train.jsonl.manifest.json
 ```
+
+Validate the checked-in blank pilot template, then validate and convert a local
+completed pass. Conversion refuses an incomplete workbook and never overwrites
+the input file:
+
+```bash
+semantic-action-data validate-pilot-workbook \
+    docs/challenge_set/pilot_worksheets.xlsx
+
+semantic-action-data validate-pilot-workbook \
+    data/processed/pilot-pass-1.xlsx
+
+semantic-action-data convert-pilot-workbook \
+    data/processed/pilot-pass-1.xlsx \
+    data/processed/pilot-pass-1-evaluation.json \
+    --annotator-id ayo-adetayo \
+    --pass-id pass-1
+```
+
+The converted pilot bundle is for annotation-guide development only. It is not
+gold data and must not be used for model selection or reported challenge
+results.
 
 ### Score an evaluation bundle
 

@@ -5,6 +5,7 @@ from pathlib import Path
 import tempfile
 import unittest
 
+from semantic_action_extractor.datasets.common import DatasetFormatError
 from semantic_action_extractor.evaluation.bundle import (
     EVALUATION_BUNDLE_VERSION,
     EvaluationBundle,
@@ -23,7 +24,12 @@ from semantic_action_extractor.evaluation.types import (
 from semantic_action_extractor.evaluation_cli import main
 
 
-def _bundle(*, predicate_source: str) -> EvaluationBundle:
+def _bundle(
+    *,
+    predicate_source: str,
+    source_id: str = "sentence-1",
+    metadata: dict[str, object] | None = None,
+) -> EvaluationBundle:
     question = EvaluationQuestion(
         surface_form="Who approved something?",
         wh="who",
@@ -46,7 +52,7 @@ def _bundle(*, predicate_source: str) -> EvaluationBundle:
         ),
     )
     predicate = EvaluationPredicate(
-        key=PredicateKey("sentence-1", 1, 2, "verbal"),
+        key=PredicateKey(source_id, 1, 2, "verbal"),
         is_eventive=True,
         lemma="approve",
         pairs=(pair,),
@@ -64,7 +70,7 @@ def _bundle(*, predicate_source: str) -> EvaluationBundle:
         corpus=EvaluationCorpus((predicate,)),
         predicate_source=predicate_source,
         consolidation_rule="valid-judgment-union-v1",
-        metadata={"fixture": True},
+        metadata={"fixture": True} if metadata is None else metadata,
     )
 
 
@@ -119,6 +125,98 @@ class EvaluationCliTests(unittest.TestCase):
                 "fixture-model",
             )
             self.assertEqual(json.loads(captured.getvalue())["scorer"], PRIMARY_END_TO_END_V1)
+
+    def test_score_output_cannot_alias_either_input(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            gold_path = root / "gold.json"
+            predicted_path = root / "predicted.json"
+            _bundle(predicate_source="gold-annotations").write(gold_path)
+            _bundle(predicate_source="fixture-model").write(predicted_path)
+            original_gold = gold_path.read_bytes()
+            original_predicted = predicted_path.read_bytes()
+
+            for output_path in (gold_path, predicted_path):
+                with self.subTest(output=output_path.name):
+                    with self.assertRaisesRegex(
+                        ValueError,
+                        "score output must be different",
+                    ):
+                        main(
+                            [
+                                str(gold_path),
+                                str(predicted_path),
+                                "--mode",
+                                PRIMARY_END_TO_END_V1,
+                                "--output",
+                                str(output_path),
+                                "--overwrite",
+                            ]
+                        )
+                    self.assertEqual(gold_path.read_bytes(), original_gold)
+                    self.assertEqual(predicted_path.read_bytes(), original_predicted)
+
+    def test_rejects_predictions_from_gold_quarantined_sources(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            gold_path = root / "gold.json"
+            predicted_path = root / "predicted.json"
+            _bundle(
+                predicate_source="pilot-gold",
+                metadata={"excluded_source_ids": ["quarantined-source"]},
+            ).write(gold_path)
+            _bundle(
+                predicate_source="fixture-model",
+                source_id="quarantined-source",
+            ).write(predicted_path)
+
+            with self.assertRaisesRegex(
+                DatasetFormatError,
+                "prediction bundle contains quarantined sources",
+            ):
+                main(
+                    [
+                        str(gold_path),
+                        str(predicted_path),
+                        "--mode",
+                        PRIMARY_END_TO_END_V1,
+                    ]
+                )
+
+    def test_pilot_scoring_requires_matching_source_and_tokenizer(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            gold_path = root / "gold.json"
+            predicted_path = root / "predicted.json"
+            _bundle(
+                predicate_source="pilot-gold",
+                metadata={
+                    "contract_version": "candidate-pilot-normalized-v1",
+                    "authoring_fingerprint": "pilot-source-fingerprint",
+                    "tokenization_version": "pilot-source-tokenizer-v1",
+                    "excluded_source_ids": [],
+                },
+            ).write(gold_path)
+            _bundle(
+                predicate_source="fixture-model",
+                metadata={
+                    "authoring_fingerprint": "different-source-fingerprint",
+                    "tokenization_version": "pilot-source-tokenizer-v1",
+                },
+            ).write(predicted_path)
+
+            with self.assertRaisesRegex(
+                DatasetFormatError,
+                "authoring_fingerprint does not match",
+            ):
+                main(
+                    [
+                        str(gold_path),
+                        str(predicted_path),
+                        "--mode",
+                        PRIMARY_END_TO_END_V1,
+                    ]
+                )
 
 
 if __name__ == "__main__":

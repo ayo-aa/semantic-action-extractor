@@ -8,6 +8,10 @@ import json
 from pathlib import Path
 from typing import Sequence
 
+from .challenge_workbook import (
+    convert_pilot_workbook,
+    validate_pilot_workbook,
+)
 from .datasets.io import (
     download_verified,
     extract_verified,
@@ -43,7 +47,9 @@ from .evaluation.consolidation import consolidate_annotations
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="semantic-action-data",
-        description="Verify and adapt the pinned QA-SRL and QANom releases.",
+        description=(
+            "Verify and adapt the research datasets and candidate-pilot workbook."
+        ),
     )
     commands = parser.add_subparsers(dest="command", required=True)
 
@@ -102,6 +108,22 @@ def build_parser() -> argparse.ArgumentParser:
     consolidate.add_argument("output", type=Path)
     consolidate.add_argument("--manifest", type=Path, required=True)
     consolidate.add_argument("--overwrite", action="store_true")
+
+    validate_pilot = commands.add_parser(
+        "validate-pilot-workbook",
+        help="validate the candidate-pilot workbook contract",
+    )
+    validate_pilot.add_argument("input", type=Path)
+
+    convert_pilot = commands.add_parser(
+        "convert-pilot-workbook",
+        help="convert one completed pilot pass into an evaluation bundle",
+    )
+    convert_pilot.add_argument("input", type=Path)
+    convert_pilot.add_argument("output", type=Path)
+    convert_pilot.add_argument("--annotator-id", required=True)
+    convert_pilot.add_argument("--pass-id", choices=("pass-1", "pass-2"), required=True)
+    convert_pilot.add_argument("--overwrite", action="store_true")
 
     leakage = commands.add_parser(
         "check-joint-splits",
@@ -246,6 +268,20 @@ def main(argv: Sequence[str] | None = None) -> int:
             }
         )
         return 0
+    if args.command == "validate-pilot-workbook":
+        report = validate_pilot_workbook(args.input)
+        _print_json(report.to_dict())
+        return 0
+    if args.command == "convert-pilot-workbook":
+        _require_distinct_paths(args.input, args.output)
+        conversion = convert_pilot_workbook(
+            args.input,
+            annotator_id=args.annotator_id,
+            pass_id=args.pass_id,
+        )
+        conversion.bundle.write(args.output, overwrite=args.overwrite)
+        _print_json({"output": str(args.output), **conversion.to_dict()})
+        return 0
     if args.command == "check-joint-splits":
         qasrl_index = load_qasrl_index(args.qasrl_index)
         report = build_training_quarantine(
@@ -342,6 +378,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         )
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
+
+
+def _require_distinct_paths(input_path: Path, output_path: Path) -> None:
+    try:
+        same_file = output_path.exists() and input_path.samefile(output_path)
+    except OSError:
+        same_file = False
+    if input_path.resolve() == output_path.resolve() or same_file:
+        raise ValueError(
+            "pilot workbook input and evaluation-bundle output must be different files"
+        )
 
 
 def _write(

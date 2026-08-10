@@ -8,6 +8,8 @@ from pathlib import Path
 from typing import Sequence
 import uuid
 
+from .challenge_workbook import PILOT_WORKBOOK_CONTRACT_VERSION
+from .datasets.common import DatasetFormatError
 from .datasets.io import sha256_file
 from .evaluation.bundle import EvaluationBundle, load_evaluation_bundle
 from .evaluation.scorers import SCORER_MODES, score_corpora
@@ -28,8 +30,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.output is not None:
+        _require_distinct_output(args.output, (args.gold, args.predicted))
     gold, gold_sha256 = _load_stable_bundle(args.gold)
     predicted, predicted_sha256 = _load_stable_bundle(args.predicted)
+    _validate_pilot_compatibility(gold, predicted)
+    _validate_record_quarantine(gold, predicted)
     result = score_corpora(
         gold.corpus,
         predicted.corpus,
@@ -74,6 +80,80 @@ def _load_stable_bundle(path: Path) -> tuple[EvaluationBundle, str]:
     if final_digest != initial_digest:
         raise RuntimeError(f"evaluation bundle changed while it was read: {path}")
     return bundle, initial_digest
+
+
+def _validate_record_quarantine(
+    gold: EvaluationBundle,
+    predicted: EvaluationBundle,
+) -> None:
+    """Refuse to score source records that gold explicitly quarantined."""
+
+    raw_source_ids = gold.metadata.get("excluded_source_ids")
+    if raw_source_ids is None:
+        return
+    if not isinstance(raw_source_ids, list) or any(
+        not isinstance(source_id, str) or not source_id.strip()
+        for source_id in raw_source_ids
+    ):
+        raise DatasetFormatError(
+            "gold metadata excluded_source_ids must be a list of source IDs"
+        )
+    if len(raw_source_ids) != len(set(raw_source_ids)):
+        raise DatasetFormatError(
+            "gold metadata excluded_source_ids must not contain duplicates"
+        )
+    excluded = set(raw_source_ids)
+    gold_leaks = sorted(
+        {predicate.key.source_id for predicate in gold.corpus.predicates} & excluded
+    )
+    if gold_leaks:
+        raise DatasetFormatError(
+            "gold bundle contains predicates from quarantined sources: "
+            f"{gold_leaks}"
+        )
+    predicted_leaks = sorted(
+        {
+            predicate.key.source_id
+            for predicate in predicted.corpus.predicates
+        }
+        & excluded
+    )
+    if predicted_leaks:
+        raise DatasetFormatError(
+            "prediction bundle contains quarantined sources; remove them before "
+            f"scoring: {predicted_leaks}"
+        )
+
+
+def _validate_pilot_compatibility(
+    gold: EvaluationBundle,
+    predicted: EvaluationBundle,
+) -> None:
+    if gold.metadata.get("contract_version") != PILOT_WORKBOOK_CONTRACT_VERSION:
+        return
+    for field in ("authoring_fingerprint", "tokenization_version"):
+        gold_value = gold.metadata.get(field)
+        if not isinstance(gold_value, str) or not gold_value:
+            raise DatasetFormatError(
+                f"pilot gold metadata requires a non-empty {field}"
+            )
+        if predicted.metadata.get(field) != gold_value:
+            raise DatasetFormatError(
+                f"prediction bundle {field} does not match pilot gold"
+            )
+
+
+def _require_distinct_output(output: Path, inputs: Sequence[Path]) -> None:
+    resolved_output = output.resolve()
+    for input_path in inputs:
+        try:
+            same_file = output.exists() and input_path.samefile(output)
+        except OSError:
+            same_file = False
+        if resolved_output == input_path.resolve() or same_file:
+            raise ValueError(
+                "score output must be different from the gold and predicted bundles"
+            )
 
 
 def _write_json(payload: object, path: Path, *, overwrite: bool) -> None:

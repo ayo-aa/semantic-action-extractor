@@ -62,21 +62,23 @@ Do not use these labels to say that the event happened. An empty qualifier list
 means no supported cue was annotated, not that the event is true or complete.
 
 The workbook records qualifier assessment explicitly. Set
-`qualifier_assessed` to `false` and leave every qualifier field blank when the
-assessment was not performed. Set it to `true` with blank qualifier fields when
-assessment found no supported cue, or to `true` with populated qualifier fields
-when cues were found. Non-eventive nominal candidates use `false`.
+`qualifier_assessed` to `false` and add no `Qualifier Evidence` rows when the
+assessment was not performed. Set it to `true` with no evidence rows when
+assessment found no supported cue, or to `true` and add one or more evidence
+rows when cues were found. Non-eventive nominal candidates use `false`.
 
 When scope is unresolved—for example, `Maya does not have to approve`—mark the
-item ambiguous and exclude it from the scored set unless the guide is revised
-before freezing.
+item ambiguous and exclude it. Record quarantine then removes the complete
+source from the guide-development evaluation corpus.
 
 ## Role questions and answers
 
 Preserve all seven QA-SRL slots: `wh`, `aux`, `subj`, `verb`, `obj`, `prep`, and
-`obj2`. Use `_` for an unused slot. Every answer must copy exact source text and
-retain its token and character boundaries. Coordinated or discontinuous answers
-remain grouped rather than being flattened into unrelated arguments.
+`obj2`. Use `_` for an unused slot, but every pilot question requires a supported
+question-word slot and a non-placeholder abstract verb slot. Its surface form
+must end in `?`. Every answer must copy exact source text and retain its token
+and character boundaries. Coordinated or discontinuous answers remain grouped
+rather than being flattened into unrelated arguments.
 
 Examples:
 
@@ -94,15 +96,51 @@ Examples:
 - Wait 7–14 days.
 - Pass 2: use the separately shuffled file without opening pass 1.
 - Compare only after pass 2 is complete.
-- Record every difference and the resulting guide change in the review log.
+- Keep both per-pass conversion files unchanged. Record every difference and
+  resulting guide change in the Review Log of a separate comparison copy after
+  both pass files have validated and converted.
 
 The comparison is intra-annotator repeatability only. Do not call it independent
 agreement or adjudication.
 
-## Workbook readiness
+## Workbook contract
 
-The 20 Authoring rows are accepted for candidate-pilot publication. The
-Annotation sheet is provisional and must remain blank until a tested conversion
-contract defines repeated rows, question-and-answer grouping, safe derivation or
-validation of token offsets and identifiers, and conversion into the evaluation
-types. Human pass 1 begins only after that contract is implemented and verified.
+The checked-in workbook is the accepted, blank annotation template. Its source
+fingerprint pins the 20 Authoring rows so changed text, identifiers, or release
+metadata cannot silently pass as the accepted pilot. Four normalized tables keep
+independent one-to-many relationships separate:
+
+- `Annotation` contains one predicate candidate per row, including its stable
+  candidate ID, exact predicate span, type, eventivity decision, qualifier
+  assessment state, inclusion decision, and rationale.
+- `Qualifier Evidence` contains zero or more ordered cue spans for one candidate
+  and qualifier kind.
+- `Questions` contains one stable question ID, its surface form, all seven
+  QA-SRL slots, and explicit passive and negated flags.
+- `Answer Spans` contains one contiguous answer span per row. `alternative_id`
+  groups spans into one answer, and zero-based `span_order` preserves grouped or
+  discontinuous evidence without flattening it.
+
+One workbook represents exactly one annotator and one pass. Character offsets
+remain zero-based and end-exclusive. The validator checks each copied span
+against the unchanged note, derives token spans with
+`pilot-source-tokenizer-v1`, and rejects partial-token spans, broken foreign
+keys, mixed annotator/pass rows, duplicate semantic questions, incomplete
+eventive candidates, formulas in annotation data, and structural workbook
+drift. The blank template validates as ready for annotation but cannot be
+converted.
+
+Conversion requires at least one candidate for every Authoring record, a
+completed qualifier decision for every included eventive candidate, and at
+least one answered role question for every included eventive candidate. It
+produces a versioned evaluation bundle marked `single-annotator`,
+`guide-development-only`, and `not_for_model_selection`. If any candidate is
+excluded, `challenge-record-quarantine-v1` omits that entire source record from
+the scorer-ready corpus while preserving its source and candidate audit
+metadata. Prediction bundles must declare the same source fingerprint and
+tokenizer version, and bundles containing quarantined source IDs are rejected.
+
+The converter handles one pass only and requires its Review Log to remain
+inactive. It does not compare passes, consume the separate comparison log,
+adjudicate disagreements, or create gold or frozen data. Human pass 1 and the
+later clean repeat pass remain pending.
