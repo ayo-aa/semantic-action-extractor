@@ -1037,7 +1037,7 @@ def run_paired_srl_experiments(
 ) -> PairedExperimentResult:
     """Run three matched seeds and reject any non-variant config difference."""
 
-    _require_paired_configs(
+    validate_paired_configs(
         predicate_signal_config, no_predicate_signal_config
     )
     if not callable(run_one):
@@ -1229,10 +1229,12 @@ def _drop_stats(
     return stats
 
 
-def _require_paired_configs(
+def validate_paired_configs(
     predicate_config: TrainingConfig,
     ablation_config: TrainingConfig,
 ) -> None:
+    """Require paired configs to differ only by the declared variant."""
+
     if not isinstance(predicate_config, TrainingConfig):
         raise TypeError("predicate_signal_config must be TrainingConfig")
     if not isinstance(ablation_config, TrainingConfig):
