@@ -3,12 +3,19 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 from pathlib import Path
 import re
 import tomllib
 from typing import Any, Iterable
 
-from .schema import ActionFrame, ExtractionResult, Qualifier, TextSpan
+from .schema import (
+    ActionFrame,
+    ExtractionResult,
+    PredicateCandidate,
+    Qualifier,
+    TextSpan,
+)
 
 
 _SENTENCE_RE = re.compile(r"[^.!?]+(?:[.!?]+|$)", re.MULTILINE)
@@ -158,11 +165,25 @@ class BaselineConfig:
     min_confidence: float = 0.0
 
     def __post_init__(self) -> None:
+        if isinstance(self.min_confidence, bool) or not isinstance(
+            self.min_confidence, (int, float)
+        ):
+            raise TypeError("min_confidence must be a real number")
+        if not math.isfinite(float(self.min_confidence)):
+            raise ValueError("min_confidence must be finite")
         if not 0.0 <= self.min_confidence <= 1.0:
             raise ValueError("min_confidence must be between 0 and 1")
-        invalid = [verb for verb in self.additional_verbs if not _normalise_verb(verb)]
-        if invalid:
-            raise ValueError(f"additional verbs cannot be empty: {invalid!r}")
+        object.__setattr__(self, "min_confidence", float(self.min_confidence))
+        normalized_verbs: list[str] = []
+        for verb in self.additional_verbs:
+            if not isinstance(verb, str):
+                raise TypeError("additional verbs must be strings")
+            normalized = _normalise_verb(verb)
+            if not normalized:
+                raise ValueError("additional verbs cannot be empty")
+            if normalized not in normalized_verbs:
+                normalized_verbs.append(normalized)
+        object.__setattr__(self, "additional_verbs", tuple(normalized_verbs))
 
     @classmethod
     def from_toml(cls, path: str | Path) -> "BaselineConfig":
@@ -185,7 +206,7 @@ class BaselineConfig:
             raise ValueError("baseline.additional_verbs must be an array of strings")
 
         threshold = section.get("min_confidence", 0.0)
-        if not isinstance(threshold, (int, float)):
+        if isinstance(threshold, bool) or not isinstance(threshold, (int, float)):
             raise ValueError("baseline.min_confidence must be a number")
 
         return cls(
@@ -214,6 +235,29 @@ class RuleBasedExtractor:
         self.config = config or BaselineConfig()
         self._verbs = _BASE_VERBS | frozenset(self.config.additional_verbs)
 
+    def detect_predicates(self, text: str) -> tuple[PredicateCandidate, ...]:
+        """Propose supplied-predicate inputs for a downstream SRL model."""
+
+        if not isinstance(text, str):
+            raise TypeError("text must be a string")
+
+        detected: list[PredicateCandidate] = []
+        for sentence_index, _, tokens in self._sentences(text):
+            words = tuple(
+                TextSpan(text=text[token.start : token.end], start=token.start, end=token.end)
+                for token in tokens
+            )
+            for predicate_index, lemma in self._verb_candidates(tokens):
+                detected.append(
+                    PredicateCandidate(
+                        words=words,
+                        predicate_index=predicate_index,
+                        predicate_lemma=lemma,
+                        sentence_index=sentence_index,
+                    )
+                )
+        return tuple(detected)
+
     def extract(self, text: str) -> ExtractionResult:
         if not isinstance(text, str):
             raise TypeError("text must be a string")
@@ -221,17 +265,7 @@ class RuleBasedExtractor:
         actions: list[ActionFrame] = []
         warnings: list[str] = []
 
-        for sentence_index, sentence_match in enumerate(_SENTENCE_RE.finditer(text)):
-            tokens = [
-                _Token(
-                    text=token_match.group(0),
-                    start=token_match.start(),
-                    end=token_match.end(),
-                )
-                for token_match in _TOKEN_RE.finditer(
-                    text, sentence_match.start(), sentence_match.end()
-                )
-            ]
+        for sentence_index, _, tokens in self._sentences(text):
             sentence_actions = self._extract_sentence(text, tokens, sentence_index)
             actions.extend(sentence_actions)
 
@@ -246,6 +280,20 @@ class RuleBasedExtractor:
             warnings.append("No action predicates matched the rule-based vocabulary.")
 
         return ExtractionResult(text=text, actions=tuple(actions), warnings=tuple(warnings))
+
+    def _sentences(self, text: str) -> Iterable[tuple[int, re.Match[str], list[_Token]]]:
+        for sentence_index, sentence_match in enumerate(_SENTENCE_RE.finditer(text)):
+            tokens = [
+                _Token(
+                    text=token_match.group(0),
+                    start=token_match.start(),
+                    end=token_match.end(),
+                )
+                for token_match in _TOKEN_RE.finditer(
+                    text, sentence_match.start(), sentence_match.end()
+                )
+            ]
+            yield sentence_index, sentence_match, tokens
 
     def _extract_sentence(
         self, text: str, tokens: list[_Token], sentence_index: int

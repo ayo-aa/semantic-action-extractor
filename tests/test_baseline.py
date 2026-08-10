@@ -36,6 +36,26 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual([action.predicate_lemma for action in actions], ["send", "approve"])
         self.assertEqual([action.sentence_index for action in actions], [0, 1])
 
+    def test_exposes_sentence_local_predicate_candidates_for_srl(self) -> None:
+        text = "Ava sent the invoice. Morgan approved it."
+
+        candidates = RuleBasedExtractor().detect_predicates(text)
+
+        self.assertEqual(
+            [candidate.predicate.text for candidate in candidates], ["sent", "approved"]
+        )
+        self.assertEqual(
+            [candidate.predicate_lemma for candidate in candidates], ["send", "approve"]
+        )
+        self.assertEqual([candidate.sentence_index for candidate in candidates], [0, 1])
+        self.assertEqual(
+            [candidate.words[candidate.predicate_index].text for candidate in candidates],
+            ["sent", "approved"],
+        )
+        for candidate in candidates:
+            for word in candidate.words:
+                self.assertEqual(text[word.start : word.end], word.text)
+
     def test_returns_warning_when_no_predicate_matches(self) -> None:
         result = RuleBasedExtractor().extract("A quiet room with blue walls.")
 
@@ -55,6 +75,17 @@ class BaselineTests(unittest.TestCase):
 
         self.assertEqual(len(result.actions), 1)
         self.assertEqual(result.actions[0].predicate_lemma, "triage")
+
+    def test_normalizes_direct_additional_verbs(self) -> None:
+        config = BaselineConfig(additional_verbs=(" Triage ", "triage"))
+
+        self.assertEqual(config.additional_verbs, ("triage",))
+        result = RuleBasedExtractor(config).extract("The operator triaged the alert.")
+        self.assertEqual(result.actions[0].predicate_lemma, "triage")
+
+    def test_rejects_boolean_confidence_threshold(self) -> None:
+        with self.assertRaisesRegex(TypeError, "real number"):
+            BaselineConfig(min_confidence=True)
 
 
 if __name__ == "__main__":
