@@ -1,69 +1,44 @@
 # Error analysis
 
-This report tracks reproducible error categories rather than isolated anecdotes.
+No corpus-level error analysis has been performed in the restored scope. The categories below are a preregistered taxonomy, not observed findings. Future reports should count reproducible categories and use only synthetic or redistributable examples.
 
-## Predicate detection
+## Rule-baseline taxonomy
 
-- missed eligible candidate during raw-text candidate generation;
-- spurious candidate before classification;
-- missed verbal predicate;
-- spurious verbal predicate;
-- missed nominal predicate;
-- incorrect nominal eventivity decision;
-- incorrect predicate boundary or lemma;
-- incorrect related verbal form for a nominal predicate;
-- duplicate or overlapping predicate frame.
+- missing predicate vocabulary;
+- verb/noun/adjective ambiguity;
+- passive voice;
+- coordination and embedded clauses;
+- missing or overextended actor span;
+- missing or overextended patient span;
+- ambiguous qualifier relation;
+- negation or modality not represented;
+- pronoun/coreference failure;
+- sentence-boundary failure;
 
-## Argument extraction
+## Planned supplied-predicate SRL taxonomy
 
-- missing argument;
-- spurious argument;
-- underextended or overextended answer span;
-- wrong or missing QA-SRL question slot;
-- invalid realized QA-SRL role question;
-- incorrect grouping of multiple answers under one question;
-- duplicate or overlapping answer span;
-- long-distance argument;
-- passive-voice construction;
-- coordination or embedded clause;
-- implicit argument incorrectly invented or omitted.
+- wrong PropBank role with correct boundary;
+- missed or spurious argument;
+- boundary error, including coordination and attachment;
+- WordPiece alignment or prediction-collapse error;
+- malformed BIO prediction and deterministic repair;
+- truncation or dropped example;
+- rare predicate or rare role;
+- sentence-length and fragmentation effects.
 
-## Interpretation boundaries
+## Public-data preparation audit
 
-- negation not represented;
-- modality or hypothetical language not represented;
-- assignment or action-item status incorrectly inferred;
-- coreference or cross-sentence identity failure;
-- ambiguous prepositional cue.
+Before model analysis, report source-policy exclusions and adapter failures separately:
 
-## Data and generalization
+- document absent from the provenance-reviewed allowlist or denied by a source-family hold;
+- missing or ambiguous document/sentence/parse join;
+- unrecognized PropBank record dialect, pointer operator, role, or link type;
+- invalid terminal/height address or predicate mismatch;
+- unresolved empty argument or ambiguous trace chain;
+- discontinuity, overlap, or conflict that cannot fit one gold BIO label per word;
+- nonverbal predicate exclusion;
+- duplicate pointer repair recorded by the adapter.
 
-- unseen predicate lemma;
-- held-out source domain;
-- operational-style distribution shift;
-- duplicated or leaked document;
-- annotation disagreement or ambiguous reference.
+These counts measure dataset conversion coverage, not model quality. Reject the whole predicate instance when one gold role cannot be represented, and never reinterpret a failed role as gold `O`.
 
-## Neural and serialization failures
-
-- word-to-subword alignment error;
-- predicate marker or feature misalignment;
-- malformed BIO or span decoding;
-- generative answer not found in the source;
-- malformed or incomplete generated QA set;
-- repeated or order-sensitive generated QA;
-- predicate or argument lost through truncation;
-- source-offset mismatch;
-- invalid schema or duplicate serialized frame;
-- end-to-end failure caused by predicate detection rather than argument extraction.
-
-## Calibration failures
-
-- confident but incorrect predicate classification;
-- confident but incorrect answer span;
-- correct answer span with an overconfident wrong role question;
-- underconfident correct prediction removed by selective review;
-- calibration drift between verbal and nominal predicates;
-- calibration drift on held-out predicate families or source domains.
-
-For each evaluation, record the count, denominator, representative redistributable examples, affected model and configuration, likely cause, and planned response. Attribute candidate-generation, predicate-classification, argument-span, question-slot, and serialization errors to separate stages; report gold-predicate and complete-pipeline failures separately.
+For each future evaluation, record counts, denominators, gold-span conversion policy, representative authorized examples, severity, and the planned response. Keep data-preparation, rule-baseline, supplied-predicate neural, and raw-text pipeline failures in separate tables.

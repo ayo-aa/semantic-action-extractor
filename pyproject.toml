@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "semantic-action-extractor"
-version = "0.2.0"
-description = "Extract source-grounded verbal and nominal action frames from text."
+version = "0.4.0.dev2"
+description = "Research scaffold for predicate-conditioned PropBank role labeling and rule-based action extraction."
 readme = "README.md"
-requires-python = ">=3.11,<3.15"
+requires-python = ">=3.11"
 license = {file = "LICENSE"}
 authors = [{name = "Ayo Adetayo"}]
 classifiers = [
@@ -16,12 +16,16 @@ classifiers = [
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
-  "Programming Language :: Python :: 3.13",
-  "Programming Language :: Python :: 3.14",
   "Topic :: Scientific/Engineering :: Artificial Intelligence",
   "Topic :: Text Processing :: Linguistic",
 ]
 dependencies = []
+
+[project.optional-dependencies]
+neural = [
+  "torch>=2.2,<3",
+  "transformers>=4.40,<6",
+]
 
 [project.scripts]
 semantic-action-extractor = "semantic_action_extractor.cli:main"

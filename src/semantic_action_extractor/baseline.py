@@ -9,14 +9,17 @@ import re
 import tomllib
 from typing import Any, Iterable
 
-from .schema import ActionArgument, ActionFrame, ExtractionResult, TextSpan
+from .schema import (
+    ActionFrame,
+    ExtractionResult,
+    PredicateCandidate,
+    Qualifier,
+    TextSpan,
+)
 
 
 _SENTENCE_RE = re.compile(r"[^.!?]+(?:[.!?]+|$)", re.MULTILINE)
-_TOKEN_RE = re.compile(
-    r"[^\W\d_]+(?:['’-][^\W\d_]+)*|\d+(?:[.,]\d+)*|[^\w\s]",
-    re.UNICODE,
-)
+_TOKEN_RE = re.compile(r"[A-Za-z0-9]+(?:['’-][A-Za-z0-9]+)*|[^\w\s]", re.UNICODE)
 
 _BASE_VERBS = frozenset(
     {
@@ -150,7 +153,6 @@ _PREPOSITIONS = frozenset(
     }
 )
 _CLAUSE_PUNCTUATION = frozenset({",", ";", ":", ".", "!", "?"})
-_HARD_CLAUSE_BOUNDARIES = frozenset({";", ":", ".", "!", "?"})
 _TRAILING_PUNCTUATION = frozenset({",", ";", ":", ".", "!", "?", ")", "]", "}"})
 _LEADING_PUNCTUATION = frozenset({",", ";", ":", "(", "[", "{"})
 
@@ -160,35 +162,28 @@ class BaselineConfig:
     """Configuration for the rule baseline."""
 
     additional_verbs: tuple[str, ...] = ()
-    min_score: float = 0.0
+    min_confidence: float = 0.0
 
     def __post_init__(self) -> None:
-        if (
-            isinstance(self.min_score, bool)
-            or not isinstance(self.min_score, (int, float))
-            or not math.isfinite(self.min_score)
-            or not 0.0 <= self.min_score <= 1.0
+        if isinstance(self.min_confidence, bool) or not isinstance(
+            self.min_confidence, (int, float)
         ):
-            raise ValueError("min_score must be between 0 and 1")
-
-        if isinstance(self.additional_verbs, str) or not all(
-            isinstance(verb, str) for verb in self.additional_verbs
-        ):
-            raise TypeError("additional_verbs must contain only strings")
-
-        normalised_verbs = tuple(
-            _normalise_verb(verb) for verb in self.additional_verbs
-        )
-        invalid = [
-            original
-            for original, normalised in zip(
-                self.additional_verbs, normalised_verbs
-            )
-            if not normalised
-        ]
-        if invalid:
-            raise ValueError(f"additional verbs cannot be empty: {invalid!r}")
-        object.__setattr__(self, "additional_verbs", normalised_verbs)
+            raise TypeError("min_confidence must be a real number")
+        if not math.isfinite(float(self.min_confidence)):
+            raise ValueError("min_confidence must be finite")
+        if not 0.0 <= self.min_confidence <= 1.0:
+            raise ValueError("min_confidence must be between 0 and 1")
+        object.__setattr__(self, "min_confidence", float(self.min_confidence))
+        normalized_verbs: list[str] = []
+        for verb in self.additional_verbs:
+            if not isinstance(verb, str):
+                raise TypeError("additional verbs must be strings")
+            normalized = _normalise_verb(verb)
+            if not normalized:
+                raise ValueError("additional verbs cannot be empty")
+            if normalized not in normalized_verbs:
+                normalized_verbs.append(normalized)
+        object.__setattr__(self, "additional_verbs", tuple(normalized_verbs))
 
     @classmethod
     def from_toml(cls, path: str | Path) -> "BaselineConfig":
@@ -201,26 +196,22 @@ class BaselineConfig:
         if not isinstance(section, dict):
             raise ValueError("[baseline] must be a TOML table")
 
-        allowed = {"additional_verbs", "min_score"}
+        allowed = {"additional_verbs", "min_confidence"}
         unknown = sorted(set(section) - allowed)
         if unknown:
-            raise ValueError(
-                f"unknown baseline configuration keys: {', '.join(unknown)}"
-            )
+            raise ValueError(f"unknown baseline configuration keys: {', '.join(unknown)}")
 
         verbs = section.get("additional_verbs", [])
-        if not isinstance(verbs, list) or not all(
-            isinstance(item, str) for item in verbs
-        ):
+        if not isinstance(verbs, list) or not all(isinstance(item, str) for item in verbs):
             raise ValueError("baseline.additional_verbs must be an array of strings")
 
-        threshold = section.get("min_score", 0.0)
+        threshold = section.get("min_confidence", 0.0)
         if isinstance(threshold, bool) or not isinstance(threshold, (int, float)):
-            raise ValueError("baseline.min_score must be a number")
+            raise ValueError("baseline.min_confidence must be a number")
 
         return cls(
-            additional_verbs=tuple(verbs),
-            min_score=float(threshold),
+            additional_verbs=tuple(_normalise_verb(verb) for verb in verbs),
+            min_confidence=float(threshold),
         )
 
 
@@ -238,11 +229,34 @@ class _Token:
 class RuleBasedExtractor:
     """Extract simple action frames without a model or external dependency."""
 
-    extractor_id = "rule-based-v1"
+    extractor_id = "rule-based-v0"
 
     def __init__(self, config: BaselineConfig | None = None) -> None:
         self.config = config or BaselineConfig()
         self._verbs = _BASE_VERBS | frozenset(self.config.additional_verbs)
+
+    def detect_predicates(self, text: str) -> tuple[PredicateCandidate, ...]:
+        """Propose supplied-predicate inputs for a downstream SRL model."""
+
+        if not isinstance(text, str):
+            raise TypeError("text must be a string")
+
+        detected: list[PredicateCandidate] = []
+        for sentence_index, _, tokens in self._sentences(text):
+            words = tuple(
+                TextSpan(text=text[token.start : token.end], start=token.start, end=token.end)
+                for token in tokens
+            )
+            for predicate_index, lemma in self._verb_candidates(tokens):
+                detected.append(
+                    PredicateCandidate(
+                        words=words,
+                        predicate_index=predicate_index,
+                        predicate_lemma=lemma,
+                        sentence_index=sentence_index,
+                    )
+                )
+        return tuple(detected)
 
     def extract(self, text: str) -> ExtractionResult:
         if not isinstance(text, str):
@@ -251,6 +265,23 @@ class RuleBasedExtractor:
         actions: list[ActionFrame] = []
         warnings: list[str] = []
 
+        for sentence_index, _, tokens in self._sentences(text):
+            sentence_actions = self._extract_sentence(text, tokens, sentence_index)
+            actions.extend(sentence_actions)
+
+            lowered = {token.lower for token in tokens}
+            if sentence_actions and lowered & {"never", "no", "not", "without"}:
+                warnings.append(
+                    f"Sentence {sentence_index} contains possible negation; "
+                    "rule-based-v0 does not encode action polarity."
+                )
+
+        if text.strip() and not actions:
+            warnings.append("No action predicates matched the rule-based vocabulary.")
+
+        return ExtractionResult(text=text, actions=tuple(actions), warnings=tuple(warnings))
+
+    def _sentences(self, text: str) -> Iterable[tuple[int, re.Match[str], list[_Token]]]:
         for sentence_index, sentence_match in enumerate(_SENTENCE_RE.finditer(text)):
             tokens = [
                 _Token(
@@ -262,24 +293,7 @@ class RuleBasedExtractor:
                     text, sentence_match.start(), sentence_match.end()
                 )
             ]
-            sentence_actions = self._extract_sentence(text, tokens, sentence_index)
-            actions.extend(sentence_actions)
-
-            lowered = {token.lower for token in tokens}
-            if sentence_actions and lowered & {"never", "no", "not", "without"}:
-                warnings.append(
-                    f"Sentence {sentence_index} contains possible negation; "
-                    "rule-based-v1 does not encode action polarity."
-                )
-
-        if text.strip() and not actions:
-            warnings.append("No action predicates matched the rule-based vocabulary.")
-
-        return ExtractionResult(
-            text=text,
-            actions=tuple(actions),
-            warnings=tuple(warnings),
-        )
+            yield sentence_index, sentence_match, tokens
 
     def _extract_sentence(
         self, text: str, tokens: list[_Token], sentence_index: int
@@ -287,84 +301,49 @@ class RuleBasedExtractor:
         candidates = self._verb_candidates(tokens)
         candidate_positions = {position for position, _ in candidates}
         actions: list[ActionFrame] = []
-        previous_verb_index: int | None = None
-        previous_left_context: TextSpan | None = None
+        inherited_actor: TextSpan | None = None
 
-        for verb_index, lemma in candidates:
-            left_context_tokens = self._left_context_tokens(tokens, verb_index)
-            left_context = _span_from_tokens(text, left_context_tokens)
+        for candidate_number, (verb_index, lemma) in enumerate(candidates):
+            actor_tokens = self._actor_tokens(tokens, verb_index)
+            actor = _span_from_tokens(text, actor_tokens)
 
-            if (
-                left_context is None
-                and previous_verb_index is not None
-                and previous_left_context is not None
-                and self._shares_left_context(
-                    tokens, previous_verb_index, verb_index
-                )
-            ):
-                left_context = previous_left_context
-
-            previous_verb_index = verb_index
-            previous_left_context = left_context
+            if actor is None and candidate_number > 0:
+                actor = inherited_actor
+            if actor is not None:
+                inherited_actor = actor
 
             tail_end = self._tail_end(tokens, verb_index, candidate_positions)
-            right_arguments = self._parse_tail(
-                text, tokens[verb_index + 1 : tail_end]
-            )
+            patient, qualifiers = self._parse_tail(text, tokens[verb_index + 1 : tail_end])
 
-            arguments: list[ActionArgument] = []
-            if left_context is not None:
-                arguments.append(
-                    ActionArgument(
-                        role="before_predicate",
-                        role_scheme="surface",
-                        span=left_context,
-                    )
-                )
-            arguments.extend(right_arguments)
+            confidence = 0.4
+            confidence += 0.15 if actor is not None else 0.0
+            confidence += 0.15 if patient is not None else 0.0
+            confidence += 0.05 if qualifiers else 0.0
+            confidence += 0.1 if lemma in self._verbs else 0.0
+            confidence = min(confidence, 0.95)
 
-            has_direct_right_context = any(
-                argument.role == "after_predicate" for argument in right_arguments
-            )
-            has_prepositional_context = any(
-                argument.cue is not None for argument in right_arguments
-            )
-            score_points = 35
-            score_points += 20 if left_context is not None else 0
-            score_points += 20 if has_direct_right_context else 0
-            score_points += 10 if has_prepositional_context else 0
-            score = score_points / 100
-
-            if score < self.config.min_score:
+            if confidence < self.config.min_confidence:
                 continue
 
             predicate_token = tokens[verb_index]
             actions.append(
                 ActionFrame(
+                    actor=actor,
                     predicate=TextSpan(
                         text=text[predicate_token.start : predicate_token.end],
                         start=predicate_token.start,
                         end=predicate_token.end,
                     ),
                     predicate_lemma=lemma,
-                    predicate_type="verbal",
-                    arguments=tuple(arguments),
+                    patient=patient,
+                    qualifiers=tuple(qualifiers),
                     sentence_index=sentence_index,
-                    score=score,
-                    score_type="heuristic_completeness",
+                    confidence=confidence,
                     extractor=self.extractor_id,
                 )
             )
 
         return actions
-
-    def _shares_left_context(
-        self, tokens: list[_Token], previous_verb_index: int, verb_index: int
-    ) -> bool:
-        bridge = tokens[previous_verb_index + 1 : verb_index]
-        if any(token.text in _HARD_CLAUSE_BOUNDARIES for token in bridge):
-            return False
-        return any(token.lower in _COORDINATORS for token in bridge)
 
     def _verb_candidates(self, tokens: list[_Token]) -> list[tuple[int, str]]:
         candidates: list[tuple[int, str]] = []
@@ -383,25 +362,24 @@ class RuleBasedExtractor:
 
         return candidates
 
-    def _left_context_tokens(
-        self, tokens: list[_Token], verb_index: int
-    ) -> list[_Token]:
+    def _actor_tokens(self, tokens: list[_Token], verb_index: int) -> list[_Token]:
         start = 0
         for index in range(verb_index):
             token = tokens[index]
             if token.text in _CLAUSE_PUNCTUATION or token.lower in _COORDINATORS:
                 start = index + 1
 
-        context_tokens = list(tokens[start:verb_index])
-        context_tokens = _trim_tokens(context_tokens)
+        actor_tokens = list(tokens[start:verb_index])
+        actor_tokens = _trim_tokens(actor_tokens)
 
-        while context_tokens and context_tokens[-1].lower in _AUXILIARIES:
-            context_tokens.pop()
-        while context_tokens and context_tokens[0].lower in _DISCOURSE_PREFIXES:
-            context_tokens.pop(0)
+        while actor_tokens and actor_tokens[-1].lower in _AUXILIARIES:
+            actor_tokens.pop()
+        while actor_tokens and actor_tokens[0].lower in _DISCOURSE_PREFIXES:
+            actor_tokens.pop(0)
 
-        # Do not invent a left-context argument when the predicate begins a clause.
-        return _trim_tokens(context_tokens)
+        # A predicate at the start of a clause is treated as an imperative with
+        # an implicit actor rather than inventing one.
+        return _trim_tokens(actor_tokens)
 
     def _tail_end(
         self, tokens: list[_Token], verb_index: int, candidate_positions: set[int]
@@ -409,36 +387,26 @@ class RuleBasedExtractor:
         end = len(tokens)
         for index in range(verb_index + 1, len(tokens)):
             token = tokens[index]
-            if token.text in _HARD_CLAUSE_BOUNDARIES:
+            if token.text in {";", ".", "!", "?"}:
                 return index
             if token.lower in _COORDINATORS:
                 if any(position > index for position in candidate_positions):
                     return index
         return end
 
-    def _parse_tail(self, text: str, tokens: list[_Token]) -> list[ActionArgument]:
+    def _parse_tail(
+        self, text: str, tokens: list[_Token]
+    ) -> tuple[TextSpan | None, list[Qualifier]]:
         tokens = _trim_tokens(tokens)
         if not tokens:
-            return []
+            return None, []
 
         first_preposition = next(
-            (
-                index
-                for index, token in enumerate(tokens)
-                if token.lower in _PREPOSITIONS
-            ),
+            (index for index, token in enumerate(tokens) if token.lower in _PREPOSITIONS),
             len(tokens),
         )
-        arguments: list[ActionArgument] = []
-        direct_span = _span_from_tokens(text, _trim_tokens(tokens[:first_preposition]))
-        if direct_span is not None:
-            arguments.append(
-                ActionArgument(
-                    role="after_predicate",
-                    role_scheme="surface",
-                    span=direct_span,
-                )
-            )
+        patient = _span_from_tokens(text, _trim_tokens(tokens[:first_preposition]))
+        qualifiers: list[Qualifier] = []
 
         index = first_preposition
         while index < len(tokens):
@@ -461,22 +429,11 @@ class RuleBasedExtractor:
 
             value = _span_from_tokens(text, _trim_tokens(tokens[value_start:value_end]))
             if value is not None:
-                arguments.append(
-                    ActionArgument(
-                        role=relation_token.lower,
-                        role_scheme="surface",
-                        span=value,
-                        cue=TextSpan(
-                            text=text[relation_token.start : relation_token.end],
-                            start=relation_token.start,
-                            end=relation_token.end,
-                        ),
-                    )
-                )
+                qualifiers.append(Qualifier(relation=relation_token.lower, value=value))
 
             index = max(value_end, index + 1)
 
-        return arguments
+        return patient, qualifiers
 
 
 def _normalise_verb(value: str) -> str:
@@ -509,10 +466,7 @@ def _verb_lemma(word: str, verbs: Iterable[str]) -> str | None:
     if word.endswith("s") and len(word) > 2:
         candidates.append(word[:-1])
 
-    return next(
-        (candidate for candidate in candidates if candidate in vocabulary),
-        None,
-    )
+    return next((candidate for candidate in candidates if candidate in vocabulary), None)
 
 
 def _trim_tokens(tokens: list[_Token]) -> list[_Token]:

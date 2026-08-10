@@ -1,258 +1,171 @@
 # Semantic Action Extractor
 
-A research system for source-grounded verbal and nominal semantic role extraction.
-
 ## TL;DR
 
-Semantic Action Extractor turns unstructured English into records of actions and events: the predicate, the people or things connected to it, the semantic question describing each connection, and the exact supporting text.
+This project turns short English text into source-grounded predicate–argument records. Its research core is the same task and architecture as Ayo Adetayo's original semantic-role-labeling homework: given a sentence and one supplied predicate, fine-tune BERT to assign word-level PropBank BIO labels such as `ARG0`, `ARG1`, and `ARGM-TMP`.
 
-- The current implementation is a dependency-free rule baseline with exact source offsets, a versioned JSON response, a CLI, and automated tests.
-- The trained system will use QA-SRL and QANom to cover actions expressed as verbs (`approved`) and event-expressing nouns (`approval`).
-- The main model will select answer spans directly from the input and predict the seven constrained parts of each QA-SRL role question.
-- The research comparison is a structured BERT-family encoder versus a reproduced T5-small QASem generator under matched data and compute.
-- No neural checkpoint or corpus-level result is claimed yet.
+The repository currently contains a runnable rule baseline and unit-tested SRL primitives for classic/modern PropBank record parsing, Penn Treebank pointer-to-BIO conversion, WordPiece/BIO alignment, BIO repair and decoding, generic micro exact labeled-span scoring, and construction of a predicate-conditioned BERT token classifier. It also contains a read-only aggregate MASC feasibility audit. MASC was rejected for the fixed gold-span milestone; replacement-source selection, word-level prediction collapse, the training and evaluation runner, a checkpoint, and corpus results are pending.
 
 ## Abstract
 
-Operational text describes consequential events without presenting them as structured data. A support note might say that an agent approved a refund, a meeting summary might record the team’s approval, and an email might describe a customer’s cancellation. The same event can appear as a verb or as a nominalization—a noun derived from a verb—so verb-only extraction misses part of the record.
+Operational text often names an action, who or what participated, and when or where it happened. This project studies whether explicit predicate conditioning improves a BERT semantic-role model on one lawfully usable public corpus while preserving exact links to the source text.
 
-Prior QASem research demonstrated that a text-to-text model can jointly generate verbal and nominal question-answer semantics. This project studies a different engineering and research question: whether a source-constrained encoder can preserve that semantic coverage while improving exact grounding, confidence measurement, inference efficiency, and transfer to unseen predicate families and operational-style language.
+The controlled research task is PropBank-style semantic role labeling (SRL): one sentence and one known predicate go in; one BIO tag per input word comes out. The neural design uses `bert-base-uncased`, aligns word labels to WordPieces, marks the predicate through BERT token-type IDs, and applies a linear token-classification head. Exact labeled-span precision, recall, and F1 are the principal model metrics. This directly reflects the original homework method; it is not a question-answering formulation.
 
-The proposed model first selects answer spans from the source and then predicts the seven structured slots that form a QA-SRL question. It is compared with a reproduced T5-small QASem baseline, multiple target-predicate signals, separate and balanced joint training, and a complete pipeline that must find predicates before extracting their arguments.
+A planned raw-text product path uses the rule baseline to propose candidate predicates before an SRL model analyzes each candidate. That integration is not implemented yet. Candidate detection and supplied-predicate role labeling will be evaluated separately so end-to-end results cannot hide errors from either stage.
 
-## Problem definition
+## Example product output
 
-A **predicate** expresses an action or event. An **argument** is a participant or circumstance connected to that predicate. A **role question** expresses the connection in natural language.
-
-Consider:
+Input:
 
 ```text
-After Priya’s approval of the refund, Jordan emailed the customer on Tuesday.
+Maya emailed the signed contract to Jordan on Tuesday.
 ```
 
-The target system identifies two predicates:
-
-1. `approval`, a nominal predicate whose related verbal form is `approve`;
-2. `emailed`, a verbal predicate whose lemma is `email`.
-
-It then connects `Priya` and `the refund` to `approval`, and `Jordan`, `the customer`, and `Tuesday` to `emailed`. Each answer remains a span of the original sentence rather than newly generated text.
-
-An abridged target record is:
+Abridged output:
 
 ```json
 {
-  "predicate": {"text": "approval", "start": 14, "end": 22},
-  "predicate_lemma": "approval",
-  "related_verbal_form": "approve",
-  "predicate_type": "nominal",
-  "arguments": [
+  "actions": [
     {
-      "role": "who approved something?",
-      "role_scheme": "qa_srl",
-      "span": {"text": "Priya", "start": 6, "end": 11}
-    },
-    {
-      "role": "what was approved?",
-      "role_scheme": "qa_srl",
-      "span": {"text": "the refund", "start": 26, "end": 36}
+      "actor": {"text": "Maya", "start": 0, "end": 4},
+      "predicate": {"text": "emailed", "start": 5, "end": 12},
+      "predicate_lemma": "email",
+      "patient": {"text": "the signed contract", "start": 13, "end": 32},
+      "qualifiers": [
+        {"relation": "to", "value": {"text": "Jordan", "start": 36, "end": 42}},
+        {"relation": "on", "value": {"text": "Tuesday", "start": 46, "end": 53}}
+      ]
     }
   ]
 }
 ```
 
-The role question preserves what the annotation supports instead of forcing every span into `actor` or `patient`. In `Jordan received the invoice`, Jordan is a recipient even though Jordan appears before the predicate. In `The contract was approved by Maya`, Maya is the approver even though Maya appears after it.
-
-The term *action* here means a linguistic action or event mention. The system does not determine whether something is an assignment, commitment, action item, completed task, or instruction to execute.
-
-## Prior research and our contribution
-
-[Large-Scale QA-SRL Parsing](https://aclanthology.org/P18-1191/) defined two learned problems for each supplied verbal predicate: find its answer spans and generate the constrained question that labels each relationship. [QANom](https://aclanthology.org/2020.coling-main.274/) extended the representation to event-expressing nouns.
-
-[QASem Parsing](https://aclanthology.org/2022.emnlp-main.528/) subsequently trained a unified T5 model over QA-SRL and QANom. It already studied joint learning, target-predicate markers, output ordering, and source-domain transfer. This project treats that work as a baseline rather than presenting unified parsing as a new result.
-
-The planned contribution is:
-
-1. **Structured versus generative modeling:** Compare a span-and-question encoder with a text-to-text QASem parser under matched inputs and compute.
-2. **Guaranteed answer grounding:** Select answers from source positions and measure malformed or ungrounded generations from the comparison model.
-3. **Predicate-conditioning study:** Compare no signal, BERT token types, boundary markers, and learned predicate features.
-4. **Controlled transfer:** Measure naturally unseen and deliberately held-out predicate families, source-domain shift, and operational-style language.
-5. **Complete-pipeline accounting:** Separate candidate generation, predicate classification, supplied-predicate extraction, and raw-text end-to-end results.
-6. **Engineering evidence:** Report calibration, latency, throughput, memory, checkpoint size, and exact reproducibility metadata.
-
-## Research question
-
-> Under matched data and compute, how does a source-constrained encoder parser compare with a generative QASem parser on labeled extraction quality, exact source grounding, calibration, efficiency, and transfer to unseen predicates and operational-style text—and which predicate-conditioning method is most robust?
-
-The principal hypotheses are that structured span selection will eliminate ungrounded answer strings; explicit predicate signals will outperform no signal; marker or learned-feature conditioning will transfer better than repurposed token types; and balanced joint training will help nominal predicates without reducing verbal labeled F1 by more than one point.
+The current rule baseline produces this action view. A future neural research representation will retain PropBank roles first. `ARG0` and `ARG1` are predicate-specific roles, not universal synonyms for actor and patient, so any product-facing conversion must be explicit and conservative.
 
 ## System design
 
 ```mermaid
 flowchart LR
-    A["Input text"] --> B["Candidate generation"]
-    B --> C["Predicate and eventivity classification"]
-    C --> D["One selected predicate"]
-    D --> E["Predicate-conditioned encoder"]
-    E --> F["Answer-span head"]
-    E --> G["Seven-slot question head"]
-    F --> H["Grouped source spans"]
-    G --> I["Realized role questions"]
-    H --> J["Versioned action records"]
-    I --> J
+    A["Raw text"] --> B["Rule candidate predicates"]
+    C["Evaluation sentence plus supplied predicate"] --> D["One sentence and one predicate index"]
+    L["PropBank record plus PTB tree"] --> M["Fail-closed pointer-to-BIO conversion (implemented)"]
+    M --> D
+    B -.->|planned orchestration| D
+    D --> E["WordPiece/BIO alignment (implemented)"]
+    D --> F["First-piece predicate indicator (implemented)"]
+    E --> G["BERT encoder construction boundary"]
+    F --> G
+    G --> H["Linear token head and loss (implemented with fakes)"]
+    H -.-> I["Word-level prediction collapse (planned)"]
+    I -.-> J["Role spans and source offsets (planned)"]
+    J -.-> K["Optional action-record adapter (planned)"]
 ```
 
-The complete system contains three separately measured decisions. Candidate generation proposes possible verbs and nouns. Predicate classification determines which candidates express in-scope events; for QANom nouns, this includes deciding whether the noun is **eventive**, meaning that it actually describes an event in that sentence. Argument extraction then analyzes one positive predicate at a time.
+The design keeps two deliberately separate entry paths:
 
-The structured neural parser uses one contextual encoder with two learned outputs. The span head finds answer boundaries in the source. The question head predicts the seven constrained QA-SRL slots—such as the question word, auxiliary, subject placeholder, verb form, object placeholders, and preposition—and code deterministically realizes the final question. Several spans can remain grouped under the same role question through an explicit group identifier in the public response.
+- **Controlled SRL evaluation:** the dataset supplies the predicate, matching the original homework.
+- **Planned raw-text extraction:** the rule baseline proposes predicates, then the SRL component labels each one. This wiring is pending, and candidate recall will be reported separately from role-labeling quality.
 
-The T5-small QASem comparison generates the complete question-answer set as text. Its outputs are aligned back to the source, and invalid, duplicate, or ungrounded answers remain measured errors.
+## Original method retained
 
-The current rule baseline exercises the same public interface without pretending to solve these learned tasks. It identifies configured verbs and returns nearby surface text. Roles such as `before_predicate` describe position only, not semantic meaning.
+The reengineered neural path preserves the original design decisions:
 
-| Component | Current baseline | Research target |
+- `bert-base-uncased` contextual representations;
+- one training instance per sentence–predicate pair;
+- word-level PropBank BIO labels;
+- WordPiece alignment in which the first piece keeps `B-*` and continuation pieces use `I-*`;
+- a predicate indicator passed through `token_type_ids`, set only on the first predicate WordPiece;
+- a linear classifier over BERT's token states;
+- a model boundary that leaves the encoder and classifier trainable and computes cross-entropy while ignoring special/padding positions;
+- exact labeled-span precision, recall, and F1, excluding predicate `V` and continuation `C-V` spans;
+- token accuracy as a diagnostic, never the main quality claim.
+
+These primitives are a partial modular reimplementation, not a trained pipeline. Restricted course files, starter code, assignment text, checkpoints, and examples are not included.
+
+## Public research data
+
+[Universal Proposition Bank 1.0 English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT) has been rejected for the restored BIO-span milestone. It supplies dependency-head arguments, not the gold argument spans required by this project's word-level target; the [UP 2.0 paper](https://aclanthology.org/2022.lrec-1.181/) explicitly identifies that limitation.
+
+The [88K-word MASC PropBank release](https://anc.org/data/masc/downloads/data-download/) was then acquired into ignored local storage for an approved, read-only feasibility audit. It is **rejected for this milestone**. Rights review produced only a provisional diagnostic manifest and did not complete item-level attribution, the join gate remains on hold, and two independent annotation-fit analyses place optimistic exact-span recovery below the predeclared 99% threshold. No MASC preparation adapter, split, training run, or checkpoint was created.
+
+The conversion core parses the documented classic and later English `.prop` record layouts, counts PTB empty terminals during pointer resolution, removes them only from the model-facing word sequence, preserves discontinuous pieces, treats `LINK-*` as metadata, retains the raw record and terminal-to-word map, and rejects an entire predicate instance when one gold role cannot be represented faithfully. It produces a validated unsplit record so document-level splits can be frozen later. `wsj_*` basenames are denied by default as a rights backstop; any future corpus adapter must add a stricter provenance-reviewed allowlist. Rejections carry stable reason codes so a corpus audit can reconcile every input row without turning failed arguments into false `O` labels.
+
+The audit also records three deferred source-format gaps: two archive-specific
+PTB wrapper forms, mixed semicolon/trace-chain pointers, and a LINK anchoring
+rule that is too strict for observed MASC records. Those implementation gaps
+do not explain the no-go—the optimistic annotation ceiling still misses 99%.
+
+The package does not download or vendor a research corpus. The locally acquired MASC audit artifact remains under ignored `data/raw/` and is not required to install or run the package. The decision record, completed audit, and gate are documented in [DATA_USAGE.md](DATA_USAGE.md), [reports/masc_propbank_audit.md](reports/masc_propbank_audit.md), and [docs/datasets/masc_propbank_gate.md](docs/datasets/masc_propbank_gate.md).
+
+## Evaluation contracts
+
+The project reports distinct measures for distinct claims:
+
+| Contract | What it measures | Status |
 | --- | --- | --- |
-| Predicate coverage | Configured verbs | Verbal and eventive nominal predicates |
-| Arguments | Surface position and prepositions | Source spans with QA-SRL role questions |
-| Learning | None | Fine-tuned encoder and comparison generator |
-| Score | Heuristic completeness | Separately calibrated predicate and argument probabilities |
-| Evaluation | Software behavior | Multi-seed extraction, transfer, calibration, and systems study |
+| Predicate-candidate recall | Whether the raw-text front end proposed each annotated predicate | Detector implemented; corpus evaluator pending |
+| Generic exact labeled-span P/R/F1 | Whether predicted BIO spans match gold label and boundary exactly | Implemented for word-level BIO sequences; no corpus result |
+| Per-role F1 | Which PropBank roles improve or fail | Not implemented |
+| Token accuracy | Word-label diagnostic dominated by `O` labels | Not implemented; planned diagnostic |
+| End-to-end frame F1 | Combined candidate detection and downstream role extraction from raw text | Not implemented |
+| Latency and memory | Practical cost of baseline and neural inference | Not benchmarked |
 
-## Data and representation
-
-The verbal training source is QA-SRL Bank 2.1, with QA-SRL Gold Standard used for primary verbal development and test evaluation. QANom supplies nominal candidates, contextual eventivity labels, related verbal forms, role questions, and answer spans.
-
-Dataset preparation uses a lossless research representation that retains source identifiers, tokens, official splits, verb-inflection paradigms, all seven raw question slots, question and answer provenance, available tense/aspect/voice/negation fields, multiple answer judgments, alternative or grouped spans, and negative nominal candidates. The public inference response remains smaller because serving output and training evidence have different requirements.
-
-QANom development and test sentences overlap QA-SRL Gold Standard source material. Joint experiments therefore preserve source identifiers and prevent cross-task document leakage.
-
-The operational-style challenge set is authored or explicitly licensed, annotated, adjudicated, and frozen before model comparisons use it. Unless representative real operational text is available, the report will not describe it as proof of operational-domain performance.
-
-## Evaluation
-
-The primary extraction measure is labeled QA-pair F1: a prediction must identify an answer with sufficient token overlap and assign an equivalent role question. Unlabeled F1 shows whether the system found the right answer even when its question was wrong, while exact-span F1 requires identical boundaries. Exact source validity measures whether every returned answer truly maps to the original text.
-
-Candidate recall and predicate F1 evaluate the earlier pipeline stages. Calibration evaluates predicate confidence against predicate correctness and argument confidence against complete matched question-answer correctness; one ambiguous overall score is not used for every purpose. Latency, throughput, peak memory, and checkpoint size show whether accuracy improvements are practical.
-
-Every neural comparison uses at least three paired seeds and reports the mean and sample standard deviation. Joint and separate systems receive equal primary training tokens or optimizer steps. The verbal task has a declared one-point non-inferiority margin so a nominal improvement cannot conceal a larger verbal regression.
+Unit tests establish software behavior, not model accuracy. The earlier course run used restricted data and is not reported as a result for this public repository.
 
 ## Research plan
 
 | Study | Purpose | Status |
 | --- | --- | --- |
-| E0: Software and rule baseline | Establish the interface, deterministic lower bound, and error taxonomy. | Implemented; corpus evaluation pending. |
-| E1: Annotation, scorer, and challenge-set layer | Preserve QA-SRL/QANom evidence, reproduce metrics, and freeze operational-style evaluation. | Foundation in progress. |
-| E2: QASem reproduction | Establish the T5-small generative comparison on the audited preparation. | Pending. |
-| E3: Structured verbal parser | Train span detection and seven-slot question prediction on verbal QA-SRL. | Pending. |
-| E4: Predicate conditioning | Compare no signal, token types, markers, and learned features with matched runs. | Pending. |
-| E5: Verbal and nominal training | Compare separate, natural-ratio joint, and balanced joint training at equal compute. | Pending. |
-| E6: Complete pipeline | Add candidate generation and predicate/eventivity classification. | Pending. |
-| E7: Generalization and systems | Test held-out families, domains, operational-style text, calibration, and efficiency. | Pending. |
+| E0 — Rule baseline | Establish a runnable product interface, exact source offsets, and candidate proposer | Baseline, API, and CLI implemented; corpus and latency evaluation pending |
+| E1 — SRL foundation | Restore BIO alignment, supplied-predicate conditioning, public-data selection, adaptation, and exact role scoring | In progress: source-neutral primitives implemented; MASC no-go recorded; replacement-source decision pending |
+| E2 — Public neural reproduction | Fine-tune the original BERT architecture on a frozen, predeclared public split and report multiple seeds | Not started |
+| E3 — Bounded analysis | Compare the original predicate signal with no signal, then report errors and systems costs | Not started |
 
-## Results status
+E2 will not begin until E1 is reviewed. No public result, checkpoint, or benchmark claim exists yet.
 
-The current evidence establishes software behavior only. Automated tests cover schema validation, exact source grounding, rule-baseline behavior, Unicode text, passive-voice representation, negation warnings, configuration loading, and CLI serialization.
+## Scope and limitations
 
-No dataset score, trained model comparison, checkpoint, or operational-readiness claim is available yet.
+- PropBank roles describe relationships relative to a predicate sense; they do not provide a universal actor/patient ontology.
+- UP 1.0 EWT and MASC are rejected for the fixed span target; no replacement corpus or corpus-backed claim exists yet.
+- The controlled model assumes a supplied predicate. Raw-text candidate detection is a separate source of error.
+- The rule baseline is English-specific and works best on short active clauses.
+- The system does not resolve coreference, implicit arguments, intent, task ownership, completion state, or legal/business meaning.
+- A future checkpoint will fine-tune a pretrained encoder; this project does not pretrain a foundation model.
+- Representative authorized domain data is required before any operational-readiness claim.
 
-## Research conclusions
+## Documentation
 
-*Status: TK after the complete multi-seed study.*
+- [PROJECT_SPEC.md](PROJECT_SPEC.md) defines the research question, hypotheses, experiments, and stopping rules.
+- [DATA_USAGE.md](DATA_USAGE.md) records data rights and the public-data boundary.
+- [MODEL_CARD.md](MODEL_CARD.md) documents current and planned model behavior.
+- [reports/results.md](reports/results.md) separates software evidence from empirical results.
+- [reports/masc_propbank_audit.md](reports/masc_propbank_audit.md) records the completed negative MASC feasibility result.
+- [reports/error_analysis.md](reports/error_analysis.md) defines the error-analysis taxonomy.
 
-### Answer to the primary research question
+## License
 
-TK: State whether the structured parser improves grounding, quality, calibration, or efficiency relative to the reproduced QASem baseline, and identify the strongest predicate-conditioning method.
+Original repository code is MIT licensed. That license does not apply automatically to datasets, pretrained models, or other third-party artifacts. The rejected MASC audit artifact remains untracked; any future corpus will require its own license, attribution, lineage, and checkpoint review.
 
-### Results at a glance
+## Run the project
 
-| System | Verbal labeled F1 | Nominal labeled F1 | Exact grounding | p50 latency | Conclusion |
-| --- | ---: | ---: | ---: | ---: | --- |
-| Rule baseline | N/A | N/A | TK | TK | TK |
-| QASem T5-small reproduction | TK | TK | TK | TK | TK |
-| Structured verbal model | TK | N/A | TK | TK | TK |
-| Structured joint model | TK | TK | TK | TK | TK |
+Python 3.11 or newer is required.
 
-### Structured versus generative finding
-
-TK: Compare labeled quality, ungrounded or malformed output, calibration, latency, memory, and characteristic errors.
-
-### Predicate-conditioning finding
-
-TK: Compare no signal, token types, boundary markers, and learned predicate features under one controlled protocol.
-
-### Joint-training finding
-
-TK: Quantify nominal transfer and paired verbal change under equal compute and the declared non-inferiority margin.
-
-### Generalization finding
-
-TK: Report naturally unseen and controlled held-out predicate families, size-matched source-domain transfer, and the frozen operational-style set.
-
-### Practical recommendation
-
-TK: Translate quality, latency, model size, confidence behavior, and failure patterns into a bounded recommendation for a real application.
-
-### Unexpected and negative findings
-
-TK: Preserve failed hypotheses, regressions, and implementation limitations rather than reporting only the strongest result.
-
-Planned figures include structured-versus-generative quality and grounding, verbal-versus-nominal performance, the joint-training effect, held-out-family gaps, confidence risk–coverage curves, and the quality–latency tradeoff.
-
-## Business application
-
-A support organization could apply the extractor to a note such as `After Priya’s approval of the refund, Jordan emailed the customer on Tuesday.` The returned records could populate a searchable case timeline or suggest structured event fields in an internal tool. `Priya`, `the refund`, `Jordan`, `the customer`, and `Tuesday` remain linked to the exact words in the note, allowing another system or person to inspect the evidence instead of trusting an unsupported summary.
-
-The research datasets do not establish performance on a company’s tickets, email, or meeting notes. A production use would require representative authorized examples, domain testing, and an application-specific error policy. The extractor does not autonomously execute work or make consequential decisions.
-
-## Limitations and next research steps
-
-- The current baseline covers configured verbs only and does not detect nominal predicates.
-- Surface roles describe location, not semantic meaning.
-- The baseline does not reliably represent passive voice, negation, modality, coordination, coreference, implicit arguments, or predicate senses.
-- QA-SRL and QANom use research domains rather than real operational notes.
-- The neural study fine-tunes pretrained models; it does not pretrain a foundation model from random weights.
-- QA-SRL question-equivalence metrics are imperfect and require both automatic and targeted qualitative analysis.
-- The action schema does not represent assignment, commitment, due dates, completion state, or workflow execution.
-
-## Data, provenance, and license
-
-- [DATA_USAGE.md](DATA_USAGE.md) records the current data boundaries.
-- [PROVENANCE.md](PROVENANCE.md) distinguishes prior research, the predecessor notebook, and this implementation.
-- [MODEL_CARD.md](MODEL_CARD.md) documents the deterministic baseline.
-- [PROJECT_SPEC.md](PROJECT_SPEC.md) contains the complete experimental contract.
-- [LICENSE](LICENSE) applies to the repository’s original code, not automatically to third-party datasets or checkpoints.
-
-The predecessor BERT notebook used restricted course-provided OntoNotes-derived data. This project carries forward engineering concepts such as WordPiece alignment, predicate conditioning, token classification, decoding, and span evaluation, but does not publish the restricted corpus or use its recorded results as evidence.
-
-## How to run the project
-
-### Install the baseline
-
-Install Python 3.11 through 3.14. From the repository root:
+Install and run the dependency-free baseline:
 
 ```bash
 python -m pip install -e .
+semantic-action-extractor --pretty "Maya emailed the signed contract to Jordan on Tuesday."
 ```
-
-### Extract the current rule-baseline output
-
-```bash
-semantic-action-extractor --pretty \
-    "Maya emailed the signed contract to Jordan on Tuesday."
-```
-
-The baseline reports source-grounded surface arguments. It does not attach QA-SRL role questions or detect nominal predicates.
 
 The CLI also accepts standard input or a UTF-8 file:
 
 ```bash
-echo "The support team escalated the incident to Priya." \
-    | semantic-action-extractor --pretty
-semantic-action-extractor \
-    --input-file examples/sample_input.txt \
-    --pretty
+echo "The support team escalated the incident to Priya." | semantic-action-extractor --pretty
+semantic-action-extractor --input-file examples/sample_input.txt --pretty
 ```
 
-### Use the Python API
+Use the Python API:
 
 ```python
 from semantic_action_extractor import RuleBasedExtractor
@@ -263,19 +176,18 @@ result = RuleBasedExtractor().extract(
 print(result.to_dict())
 ```
 
-### Configure the rule baseline
-
-```bash
-semantic-action-extractor \
-    --config configs/baseline.toml \
-    --pretty \
-    "The operator triaged the alert."
-```
-
-The `min_score` value filters the baseline’s completeness heuristic. It is not a calibrated correctness probability.
-
-### Run the tests
+Run the complete dependency-free test suite:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
+
+If the exact ignored MASC audit artifact is present locally, reproduce the
+aggregate no-go audit without writing member payloads outside the ZIP:
+
+```bash
+PYTHONPATH=src python -m semantic_action_extractor.srl.masc_audit \
+  data/raw/Propbank-original-format.zip
+```
+
+Neural training commands will be added only when the E2 training pipeline and public-data preparation are complete; the repository does not advertise a command that cannot yet reproduce a result.

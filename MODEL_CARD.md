@@ -1,102 +1,126 @@
-# Model card: `rule-based-v1`
+# Model card
 
-## Summary
+## Current repository status
 
-`rule-based-v1` is a dependency-free English software baseline for source-grounded action extraction. It is a deterministic program, not a trained statistical model.
+The repository contains two distinct system components:
 
-The baseline finds configured verbal predicates and returns nearby text as surface arguments. A surface argument records observable position or a preposition; it does not claim that the span is a semantic actor, patient, recipient, time, or location.
+1. `rule-based-v0`, a runnable dependency-free action-extraction baseline;
+2. `bert-srl-token-type`, a unit-tested construction and utility layer for a predicate-conditioned semantic-role model, not a complete trained pipeline.
 
-The term *action* means a linguistic action or event mention. The baseline does not detect assignments, commitments, due dates, or action-item status.
+The absence of a checkpoint is intentional. Model claims begin only after a public-data source is approved, the missing pipeline is implemented, and multi-seed training, evaluation, and redistribution review are complete.
 
-## Version
+## `rule-based-v0`
 
-- Extractor ID: `rule-based-v1`
-- Project version: `0.2.0`
-- Schema version: `0.2.0`
+### Summary
+
+`rule-based-v0` identifies configured English verbs and converts nearby text into source-grounded action records. It is deterministic software, not a trained statistical model.
+
+### Version and dependencies
+
+- Extractor ID: `rule-based-v0`
 - Training data: none
 - Runtime dependencies: Python standard library only
+- Output: actor, predicate, patient, prepositional qualifiers, sentence index, source offsets, and a heuristic score
 
-## Intended uses
+### Intended uses
 
-- inspecting the versioned predicate–argument schema;
-- prototyping source-grounded text workflows with human review;
-- generating candidates for annotation;
-- providing a reproducible lower-bound comparator for trained models;
-- verifying the CLI and API before a neural checkpoint exists.
+- inspect the package schema and exact source grounding;
+- prototype short-text workflows with human review;
+- propose predicate candidates for the neural SRL stage;
+- provide a transparent product-interface baseline, candidate proposer, and latency comparator;
+- exercise the API and CLI without downloading a model.
 
-## Out-of-scope uses
+### Important interpretation limits
 
-- treating surface positions as verified semantic roles;
-- treating the heuristic score as a calibrated probability;
-- extracting nominal predicates;
-- determining whether an action is planned, requested, completed, negated, or hypothetical;
-- autonomous decisions about employment, credit, health, safety, legal status, or another consequential domain;
-- unsupervised ingestion of sensitive text without a separate privacy review;
-- high-recall event extraction or production automation without human validation;
-- multilingual extraction.
+The actor and patient fields are surface heuristics. They are not verified semantic roles. Prepositional qualifiers preserve observed wording without deciding whether a phrase is temporal, locative, instrumental, or something else.
 
-## Input and output
+The score reflects which heuristic fields were found. It is not calibrated and is not a probability of correctness.
 
-Input is one Unicode string. Output is an `ExtractionResult` containing zero or more `ActionFrame` objects. Offsets are zero-based, end-exclusive Unicode code-point indices, equivalent to Python string indices. They are not UTF-8 byte offsets or JavaScript UTF-16 code-unit offsets. The response schema verifies that each predicate, argument, and cue points to the exact source substring.
+### Known limitations
 
-Every action contains:
+- English-specific vocabulary and inflection rules;
+- best on short, active, declarative clauses;
+- false positives from noun/verb/adjective ambiguity;
+- weak coordination, embedding, and passive-voice handling;
+- no reliable negation, modality, predicate sense, coreference, or implicit arguments;
+- no corpus-level quality result.
 
-- one verbal predicate span, lemma, and type;
-- zero or more surface arguments;
-- a sentence index;
-- a heuristic completeness score and score type;
-- the extractor identifier.
+## `bert-srl-token-type`
 
-The role `before_predicate` means only that the span appears before the predicate in the current rule parse. The role `after_predicate` means only that the span appears after it and before the first recognized preposition. A role such as `to`, `on`, or `by` preserves the observed preposition and its value.
+### Summary
 
-## Score
+The neural component targets the original homework formulation: given pre-split sentence words and one supplied predicate index, predict one PropBank BIO label per word. Current code aligns gold word labels to WordPieces and produces subword logits; prediction collapse back to one label per word remains pending.
 
-The score is a transparent completeness heuristic, not a prediction of correctness. Every detected predicate begins at `0.35`; left context adds `0.20`, direct right context adds `0.20`, and at least one prepositional argument adds `0.10`. Scores therefore range from `0.35` to `0.85` for emitted frames.
+The design tokenizes with `bert-base-uncased`, aligns word labels to WordPieces, sets BERT `token_type_ids` to 1 only on the first predicate WordPiece, passes the sequence through BERT, and applies one linear classifier to each contextual token state. Full fine-tuning is the reproduction target. Cross-entropy ignores special and padding positions.
 
-The rule baseline does not populate the optional predicate- or argument-confidence fields used by future neural systems. Its completeness score has not been calibrated and must not be interpreted as an empirical probability.
+### Status
 
-## Evaluation
+- Architecture construction boundary: implemented; tested with injected fakes only
+- Gold-label WordPiece alignment: implemented
+- BIO repair and span decoding: implemented
+- Source-neutral PropBank/PTB pointer-to-BIO conversion: implemented with invented fixtures
+- Subword-prediction collapse: not implemented
+- Generic micro exact labeled-span scorer: implemented
+- Approved-corpus integration and per-role reporting: not implemented
+- Read-only aggregate MASC feasibility audit: implemented; dataset rejected
+- Approved-corpus adapter and preparation pipeline: not implemented
+- Training and evaluation pipeline: not implemented
+- Public training run: not started
+- Public checkpoint: none
+- Corpus-level public results: none
 
-The current automated suite verifies:
+The construction boundary returns dictionary-compatible logits and optional loss. A future training pipeline must save a `state_dict` together with the base-model revision, label mapping, and configuration; pickling the runtime-defined full model object is not a supported checkpoint format. A real PyTorch/Transformers smoke test remains pending.
 
-- schema and score validation;
-- exact predicate, argument, and cue offsets;
-- the role-neutral passive-voice representation;
-- Unicode source spans;
-- common regular and irregular verb lemmas;
-- multiple-sentence extraction;
-- coordinated-context inheritance without crossing hard clause boundaries;
-- negation warnings;
-- normalized custom verbs and score filtering;
-- JSON CLI behavior.
+### Planned training data
 
-No corpus-level quality benchmark has run. Unit tests establish expected software behavior but do not establish extraction accuracy, robustness, or business readiness.
+No training corpus has been approved. UP 1.0 English EWT was rejected because its dependency-head roles do not supply the required gold argument spans. The 88K-word MASC PropBank release was also rejected after a read-only audit: rights review remains incomplete, its provisional manifest is blocked at the join gate, and trace-only arguments cap optimistic exact-span conversion below the predeclared 99% threshold. Replacement-source selection is pending.
 
-## Known limitations
+Restricted OntoNotes-derived course files and checkpoints are not included or used as public evidence.
 
-- Detects only configured verbs and conservative inflections.
-- Does not detect nominal predicates such as `approval` or `cancellation`.
-- Uses token position and prepositions instead of syntax or learned semantics.
-- Performs best on short, active, declarative clauses.
-- Handles coordination and embedded clauses weakly.
-- Does not reliably represent passive voice, negation, modality, coreference, implicit arguments, or predicate senses.
-- Preserves ambiguous prepositions instead of assigning semantic roles.
-- Uses punctuation-based sentence boundaries that can fail on abbreviations.
-- Can confuse the same surface form across noun, adjective, and verb uses.
-- Does not expose calibrated uncertainty or an abstention policy.
+### Intended uses
 
-## Observed failure examples
+- research on supplied-predicate English semantic role labeling;
+- controlled predicate-conditioning experiments;
+- source-grounded role extraction with human review;
+- exact gold-span evaluation on an approved public source;
+- a downstream component after separately evaluated predicate discovery.
 
-- In `The contract was emailed by Maya`, the baseline reports `The contract` as `before_predicate` and `Maya` under the surface cue `by`. It does not infer that Maya is the semantic sender.
-- In `Maya did not approve the refund`, the baseline identifies `approve` and emits a negation warning but does not encode negative polarity.
-- In multi-clause or embedded constructions, a surface argument can extend beyond the correct semantic boundary.
+### Out-of-scope uses
 
-## Risk mitigation
+- treating `ARG0` and `ARG1` as universal actor and patient categories;
+- treating either rejected source, or any future candidate, as approved without a documented gate;
+- assuming a supplied-predicate score represents raw-text end-to-end quality;
+- multilingual or cross-domain use without separate evaluation;
+- autonomous decisions in employment, credit, health, legal, safety, or other consequential settings;
+- processing sensitive text without application-level privacy controls.
 
-- Preserve exact source spans so a reviewer can inspect every field.
-- Label all baseline roles as surface observations.
-- Label the score as heuristic completeness.
-- Emit warnings for unsupported negation instead of silently claiming polarity.
-- Require human review for consequential workflows.
-- Evaluate representative authorized domain data before deployment.
-- Give every future trained extractor its own model card, data lineage, evaluation, and checkpoint license.
+### Evaluation contract
+
+The only implemented metric is generic micro exact labeled-span precision, recall, and F1 over word-level BIO sequences, excluding supplied-predicate `V` and continuation `C-V` spans and reporting repaired prediction tags. Planned public evaluation must report gold pointer-to-span conversion coverage and every unsupported or dropped source construct. Per-role results, candidate detection, token accuracy, latency, memory, and seed variation remain pending.
+
+Token accuracy is diagnostic only because frequent `O` labels can conceal poor argument extraction.
+
+### Risks and mitigations
+
+- **Boundary fidelity:** preserve exact annotated constituents and count every pointer or overlap that cannot be represented faithfully as word-level BIO.
+- **Role overinterpretation:** preserve PropBank labels before any convenience mapping.
+- **Predicate assumption:** report supplied-predicate and end-to-end evaluation independently.
+- **Domain shift:** require representative authorized evaluation before a deployment claim.
+- **Opaque errors:** retain source tokens, terminal-to-word mappings, labels, error categories, and—when available—character offsets for inspection.
+- **Data rights:** keep datasets outside Git and review checkpoint redistribution separately.
+
+### Known source-format gaps
+
+The MASC audit exposed three unimplemented source-format cases in the generic
+converter: two unlabeled PTB wrapper serializations, mixed semicolon/trace-chain
+pointers, and LINK anchoring that cannot be validated by exact pointer identity
+alone. These are recorded engineering gaps, not the basis for rejecting MASC;
+the corpus still misses the 99% exact-span threshold under optimistic repair.
+Future fixes require source-neutral rules and wholly invented regression
+fixtures. They must not infer controllers for trace-only arguments.
+
+## Results statement
+
+Automated tests verify schema validation, exact offsets, baseline behavior, documented PropBank record and pointer conversion, BIO transformations, gold-label alignment, model-construction behavior through injected fakes, and generic metric calculations. They do not establish extraction accuracy.
+
+No trained model result, operational-readiness claim, or redistributable checkpoint is available in the current repository state.
