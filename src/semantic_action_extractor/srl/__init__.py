@@ -11,6 +11,14 @@ from .alignment import (
     collapse_subword_predictions,
 )
 from .bio import LabeledSpan, decode_bio, repair_bio
+from .batching import (
+    AlignedModelExample,
+    OverlengthDrop,
+    PaddedSRLBatch,
+    PreparedSRLSplit,
+    collate_srl_batch,
+    prepare_srl_split,
+)
 from .dataset_io import (
     DATASET_SCHEMA_VERSION,
     DatasetFormatError,
@@ -45,16 +53,20 @@ from .propbank import (
 
 __all__ = [
     "AlignedSRLExample",
+    "AlignedModelExample",
     "DATASET_SCHEMA_VERSION",
     "DatasetFormatError",
     "DatasetManifest",
     "DatasetSplit",
     "LabeledSpan",
     "OptionalMLDependencyError",
+    "OverlengthDrop",
+    "PaddedSRLBatch",
     "PredicateDiagnostics",
     "PropBankAdapterError",
     "PropBankConversion",
     "PreparedSRLDataset",
+    "PreparedSRLSplit",
     "PreparedWordLevelSRLExample",
     "RoleSpanMetrics",
     "SRLLabelVocabulary",
@@ -67,6 +79,7 @@ __all__ = [
     "build_training_label_vocabulary",
     "build_predicate_conditioned_bert",
     "collapse_subword_predictions",
+    "collate_srl_batch",
     "compute_dataset_fingerprint",
     "convert_propbank_record",
     "decode_bio",
@@ -77,6 +90,7 @@ __all__ = [
     "parse_penn_tree",
     "parse_penn_trees",
     "parse_propbank_record",
+    "prepare_srl_split",
     "score_labeled_spans",
     "write_prepared_dataset",
 ]

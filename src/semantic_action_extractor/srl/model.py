@@ -52,6 +52,7 @@ def build_predicate_conditioned_bert(
     model_name: str,
     num_labels: int,
     *,
+    model_revision: str | None = None,
     encoder: Any | None = None,
     torch_module: Any | None = None,
     transformers_module: Any | None = None,
@@ -63,6 +64,10 @@ def build_predicate_conditioned_bert(
     Encoder parameters remain trainable, so optimizing ``model.parameters()``
     fine-tunes the full encoder and the linear classifier.  Label ``-100`` is
     ignored by the cross-entropy loss.
+
+    ``model_revision`` pins the Hugging Face revision used to construct the
+    encoder.  Experiment runners should always provide it; ``None`` remains
+    supported for injected/offline callers and backwards compatibility.
 
     The module arguments support dependency injection for offline tests and
     specialized runtimes; normal callers should leave them unset.
@@ -77,21 +82,36 @@ def build_predicate_conditioned_bert(
         raise TypeError("num_labels must be an integer")
     if num_labels <= 0:
         raise ValueError("num_labels must be positive")
+    if model_revision is not None:
+        if not isinstance(model_revision, str):
+            raise TypeError("model revision must be a string or None")
+        if not model_revision.strip():
+            raise ValueError("model revision cannot be empty")
+        model_revision = model_revision.strip()
 
     torch = torch_module if torch_module is not None else _load_optional_module("torch")
     transformers = transformers_module
     if encoder is None:
         if transformers is None:
             transformers = _load_optional_module("transformers")
-        encoder = transformers.AutoModel.from_pretrained(model_name)
+        load_kwargs = (
+            {"revision": model_revision} if model_revision is not None else {}
+        )
+        encoder = transformers.AutoModel.from_pretrained(model_name, **load_kwargs)
 
     try:
         module_base = torch.nn.Module
         linear_type = torch.nn.Linear
         loss_type = torch.nn.CrossEntropyLoss
         hidden_size = int(encoder.config.hidden_size)
+        type_vocab_size = encoder.config.type_vocab_size
     except (AttributeError, TypeError, ValueError) as error:
         raise TypeError("incompatible torch module or BERT-style encoder") from error
+    if type(type_vocab_size) is not int or type_vocab_size < 2:
+        raise ValueError(
+            "predicate conditioning requires an encoder with at least two "
+            "token-type embeddings"
+        )
 
     class PredicateConditionedBert(module_base):
         """Runtime-defined module so PyTorch stays an optional dependency.
@@ -104,6 +124,7 @@ def build_predicate_conditioned_bert(
             super().__init__()
             self.encoder = encoder
             self.base_model_name = model_name
+            self.base_model_revision = model_revision
             self.num_labels = num_labels
             self.classifier = linear_type(hidden_size, num_labels)
             self.loss_function = loss_type(ignore_index=-100)
@@ -117,6 +138,11 @@ def build_predicate_conditioned_bert(
             labels: Any | None = None,
             **encoder_kwargs: Any,
         ) -> SRLModelOutput:
+            if token_type_ids is None:
+                raise ValueError(
+                    "token_type_ids must explicitly contain the predicate "
+                    "indicator or the all-zero ablation"
+                )
             outputs = self.encoder(
                 input_ids=input_ids,
                 attention_mask=attention_mask,
