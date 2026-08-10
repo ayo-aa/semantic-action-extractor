@@ -16,6 +16,7 @@ dist/
 # Data and learned artifacts require an explicit provenance review.
 data/raw/
 data/processed/
+data/review/
 artifacts/
 checkpoints/
 *.pt

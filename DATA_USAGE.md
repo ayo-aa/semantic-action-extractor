@@ -1,92 +1,239 @@
 # Data usage
 
-## Repository boundary
+## Current disposition
 
-No raw or processed research dataset is committed to this repository. The rule baseline is untrained and processes only text supplied at runtime. Tests and examples use short synthetic sentences written for this project.
+No raw or prepared research dataset is committed to this repository. The EWT
+corpus has now been prepared for model input in private Git-ignored storage at
+fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+No research-corpus training has run, no model-quality result exists, and no
+research checkpoint exists. A separate Git-ignored rehearsal used only
+invented examples to validate training and checkpoint software; it creates no
+corpus-use claim.
 
-The package itself does not retain, transmit, or log user input. Shell history, notebooks, calling applications, and deployment environments can have separate retention behavior.
+The repository includes independently written code, synthetic fixtures, source
+revision identifiers, split-policy documentation, and non-reconstructive
+aggregate audit and preparation evidence. Raw sources and the prepared JSONL
+remain ignored by Git.
 
-## Restricted course data
+## Columbia course-data boundary
 
-The original homework used course-provided PropBank-style files derived from OntoNotes under Columbia and Linguistic Data Consortium access. Those materials were limited to authorized teaching or research use.
+The original course exercise used course-provided OntoNotes-derived material
+under Columbia and Linguistic Data Consortium teaching/research access. That
+material is **not used** in this project. CourseWorks is not an acquisition or
+authentication dependency.
 
-The public repository excludes:
+The repository excludes:
 
 - course train, development, and test files;
-- label lists or statistics derived from the restricted files;
-- sentences, annotations, screenshots, outputs, and grading fixtures;
-- starter code, assignment prose, and course diagrams;
-- checkpoints trained on the restricted files.
+- labels, statistics, or examples derived from those files;
+- notebook outputs, screenshots, grading fixtures, and course results;
+- starter code, assignment prose, and course diagrams; and
+- checkpoints trained on course data.
 
-The restricted run is architectural background only. Its measurements are not presented as empirical results for this repository.
+The course exercise informs only the independently reimplemented architecture.
+Authorization to use Columbia resources does not by itself grant permission to
+publish LDC-derived data or weights, and it does not replace a third-party
+corpus's access terms.
 
-## Dataset decision record
+## Dataset decisions
 
-### Rejected: Universal Proposition Bank 1.0 English EWT
+### Rejected target: Universal Proposition Bank 1.0 English EWT heads
 
-[UP 1.0 English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT) is not a valid primary source for the restored word-level BIO-span milestone. Its English conversion places roles on dependency heads, and the [UP 2.0 paper](https://aclanthology.org/2022.lrec-1.181/) states that those heads are insufficient to recover full argument spans. Expanding dependency subtrees would create heuristic targets and a different research claim.
-
-This decision does not judge UP 1.0 as a resource. It rejects a mismatch between that resource and this project's fixed span-SRL objective. UP 1.0 remains a possible source only for a separately declared dependency-head SRL project; that pivot is out of the current scope.
+[UP English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT)
+places roles on dependency heads rather than supplying the complete gold
+argument spans required by the fixed BIO contract. Expanding dependency
+subtrees would create heuristic targets and change the research claim. UP 1.0
+is not used as the gold-label source; its documentation is used only to
+corroborate the EWT release join described below.
 
 ### Rejected: MASC PropBank
 
-The [MASC-PROPBANK-ORIG download](https://anc.org/data/masc/downloads/data-download/) is described by the Open American National Corpus as an 88K-word MASC subset with original-format PropBank annotations and the Penn Treebank annotations they reference. The [MASC overview](https://anc.org/data/masc/) describes MASC as available for any purpose under the Creative Commons Attribution 3.0 United States license.
+The [MASC PropBank download](https://anc.org/data/masc/downloads/data-download/)
+was inspected only through a read-only, aggregate feasibility audit. The
+pinned local artifact SHA-256 is
+`b7e89cfbb7a0b7caf3ba5076ac95ee80810834d3522678eefd488f166ddcc4df`.
+It remains ignored under `data/raw/`.
 
-With explicit approval, the archive was fetched from ANC's artifact URL into ignored local storage under the transport caveat recorded in the audit report: the host presented an expired TLS certificate. Its locally pinned SHA-256 is `b7e89cfbb7a0b7caf3ba5076ac95ee80810834d3522678eefd488f166ddcc4df`. No source payload was written outside the ZIP or committed. The archive reports 88,530 words and bundles full source text, inline PTB parses, and `.prop` annotations, but contains no archive-level `LICENSE`, `COPYING`, or `NOTICE` file. It includes 36 WSJ files in each layer; a `wsj_0120` versus `wsj_0122` mismatch produces 37 unique `wsj_*` identifiers across the union.
+MASC is rejected for the fixed milestone. In the strict diagnostic slice,
+unlinked, unindexed trace-only arguments cap optimistic exact-span conversion
+at 93.25%; the wider sensitivity ceiling is 92.85%. Both miss the predeclared
+99% gate. Rights/lineage and join issues also remain unresolved. No MASC
+adapter-specific preparation, split, training run, or checkpoint was created.
+See the [gate record](docs/datasets/masc_propbank_gate.md) and
+[audit](reports/masc_propbank_audit.md).
 
-ANC's corpus-wide CC BY statement is genuine, but the source families also carry publisher and LDC lineage. The 48-document non-WSJ manifest is source-family mapped and permitted only for read-only diagnostic analysis; G1 remains incomplete because an item-level attribution manifest was not finished. It is not cleared for training, corpus redistribution, or checkpoint release. The distinct WSJ slice remains denied unless ANC confirms its bundled text and annotation coverage in writing.
+### Selected: PropBank EWT skeletons plus UD English EWT r2.2
 
-MASC was rejected at the feasibility stage. G2 remains on hold because the pinned manifest has missing layers and unresolved parse-wrapper cases. G3 independently fails: a strict diagnostic slice has a 93.25% optimistic exact-span ceiling, and a wider non-WSJ sensitivity audit caps exact recovery at 92.85%, both below the predeclared 99% threshold. No MASC adapter, split, prepared dataset, training run, or checkpoint may proceed under the fixed milestone. See the [gate record](docs/datasets/masc_propbank_gate.md) and [completed audit](reports/masc_propbank_audit.md).
+The selected source is an inferred cross-release pairing of:
 
-The repository retains source-neutral pointer conversion and read-only aggregate audit code with wholly synthetic tests. The local archive is audit evidence only, remains ignored by Git, and is not a package dependency.
+- [PropBank EWT gold skeletons](https://github.com/propbank/propbank-release/tree/4abade0b53ce4a181e1d98b3518101c1a44d395a/data/google/ewt) at commit `4abade0b53ce4a181e1d98b3518101c1a44d395a`; and
+- [UD English EWT r2.2](https://github.com/UniversalDependencies/UD_English-EWT/tree/6e064999a75b9c941c515ce1be98352e6f9831e0) at commit `6e064999a75b9c941c515ce1be98352e6f9831e0`.
 
-## Split and leakage controls
+Both Git sources are anonymously readable. No account, registration,
+CourseWorks session, LDC credential, or user-provided data file is required.
+The implemented adapter verifies the exact commits and clean relevant paths,
+joins normalized document identity and sentence order, decodes the gold span
+columns, uses the unique primary `V` span start as `predicate_index`, and
+applies the frozen exclusions before any write.
 
-- Prefer an official source split when one is documented for the eventual approved corpus.
-- Otherwise freeze a versioned, deterministic, document-disjoint, genre-aware split manifest before inspecting model outcomes.
-- Preserve source document and sentence identifiers exactly.
-- Keep every sentence and predicate instance from one document in one split.
-- Create one SRL instance per eligible verbal predicate.
-- Fit label inventories and other learned preprocessing on training data only.
-- Freeze pointer conversion, role filtering, and exclusion rules before training.
-- Do not inspect test predictions while changing preprocessing, heuristics, or hyperparameters.
-- Run duplicate and document-overlap checks before publishing a result.
+This is not PropBank's prescribed LDC mapping. The public PropBank skeletons
+replace words with `[WORD]`; the corresponding words come from the pinned UD
+release. The [aggregate audit](reports/ewt_propbank_audit.md) validates the join,
+the [gate](docs/datasets/ewt_propbank_gate.md) records its limitations, and the
+[aggregate-only private source review](reports/ewt_private_source_review.md)
+records inspection of all 13 predicate-anchor divergences, the one token-width
+mismatch, and 30/30 deterministically selected aligned verbal records. No
+corpus excerpt, identifier, or review item is retained in Git.
 
-## Local preparation record
+The corrected gate counts are:
 
-Every empirical run must record:
+| Stage | Train | Development | Test | Total |
+| --- | ---: | ---: | ---: | ---: |
+| Structurally valid verbal predicates | — | — | — | 38,639 |
+| Word-aligned predicates | 31,174 | 3,806 | 3,655 | 38,635 |
+| Prepared eligible after all data controls | 31,101 | 3,775 | 3,610 | 38,486 |
+| Modeled at `max_length=128` | 31,039 | 3,775 | 3,610 | 38,424 |
 
-- canonical source URL and retrieval date;
-- source revision or release tag;
-- SHA-256 of each downloaded file;
-- adapter and configuration revision;
-- output fingerprint and instance counts by split;
-- dropped or malformed record counts with reasons;
-- label inventory derived from training data;
-- base model and tokenizer revisions;
-- random seeds, hardware, and package versions.
+The pinned tokenizer preflight builds a train-derived vocabulary of 111 labels,
+including `O` and continuation closure, and finds no development or test label
+absent from it. The private preparation reproduces the 31,101/3,775/3,610
+counts at fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+Its split-file and provenance SHA-256 values are recorded without corpus content
+in [reports/ewt_preparation.md](reports/ewt_preparation.md). This is prepared-
+data evidence, not evidence that a research model or result exists.
+
+The UD EWT README licenses annotations and database rights under CC BY-SA 4.0
+but expressly notes separate copyrights in the underlying texts. Raw source
+checkouts, reconstructed text, prepared records, and trained weights therefore
+stay ignored and private. Only source-neutral code and non-reconstructive
+aggregate metrics are public pending a separate weights review.
+
+### Audited fallback only: BabySRL
+
+[BabySRL](https://talkbank.org/childes/access/Derived/BabySRL.html) is a derived
+CHILDES Brown resource. Its
+[annotation documentation](https://cogcomp.seas.upenn.edu/Data/BabySRL.html)
+describes selected parental utterances with Penn Treebank-style parses and
+PropBank-style verbal roles represented over surface tokens. The underlying
+[Brown corpus page](https://talkbank.org/childes/access/Eng-NA/Brown.html)
+records the source history, citation, and DOI.
+
+Its historical frozen structural gate is:
+
+| Outcome | Proposition columns | Share |
+| --- | ---: | ---: |
+| Losslessly converted | 18,397 | 99.2501% |
+| Rejected fail-closed | 139 | 0.7499% |
+| **Declared** | **18,536** | **100.0000%** |
+
+The accepted and rejected counts reconcile exactly. This is historical
+annotation-fit evidence, not permission, preparation, or model accuracy.
+BabySRL is not the active source. Its TalkBank registration, current-rules, and
+manual-review requirements would become relevant only if the EWT route were
+explicitly abandoned and this fallback activated. No BabySRL data was prepared
+or used for training.
+
+## Frozen EWT split and leakage controls
+
+The selected route uses PropBank's pinned official EWT document split lists.
+After the single token-width mismatch is excluded, those splits contain
+31,174/3,806/3,655 aligned train/development/test examples. The adapter then:
+
+1. excludes all 76 examples in exact-word-sequence groups crossing splits;
+2. excludes every example in an identical `(words, predicate_index)` group with
+   conflicting tags: 29 train and two development examples;
+3. collapses an identical-target duplicate only when it repeats the same
+   source document/sentence/predicate identity (zero in the pinned sources);
+4. preserves nonconflicting train frequency across distinct source identities;
+   and
+5. removes 10 development and 32 test repetitions with exact identical
+   `(words, predicate_index, tags)` semantics across distinct source
+   identities.
+
+The resulting prepared-eligibility counts are 31,101 train, 3,775 development,
+and 3,610 test. The separate `max_length=128` preflight excludes 62 train
+examples, leaving 31,039/3,775/3,610 model inputs. Prepared dataset I/O adds
+independent duplicate, identity, split, and exact-text checks. The 111-label
+vocabulary, including `O` and continuation closure, is fitted from train only;
+absent development/test labels fail closed, and the current preflight finds
+none.
+
+The frozen predicate configuration completed one actual prepared-data batch-32
+forward/backward, gradient-clipping, AdamW, and scheduler step on MPS at longest
+retained sequence 118. It passed in 3.0069 seconds with 3,211,741,952 allocated
+bytes. This is model-input and optimizer-fit evidence only, not a research run,
+score, or benchmark.
+
+## Frozen preparation and future experiment records
+
+The completed private preparation freezes:
+
+- canonical source URLs and exact source Git commits;
+- adapter implementation commit
+  `9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42`;
+- official split and duplicate/conflict policies, prepared counts, exclusions,
+  split-file SHA-256 values, provenance receipt SHA-256, and prepared-data
+  fingerprint;
+- the 111-label training-only order and exact base-model/tokenizer revisions;
+  and
+- paired config files `configs/ewt_predicate_signal.toml` and
+  `configs/ewt_no_predicate_signal.toml`, with digests
+  `9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc`
+  and `19ff94ff8bf839ee2fd5ebdab8ffed24b1ad7b243cc413a2ba687262f8f9d866`.
+
+The future six-run study must add its exact Git revision, seed and variant,
+timestamps, resolved device, hardware, package versions, retained/drop counts,
+initial-state fingerprint, checkpoint state-dictionary SHA-256, and result-
+artifact digest.
+
+No preprocessing rule may be changed after inspecting test outcomes. The test
+split is evaluated once for each predeclared final run after development-only
+checkpoint selection.
+
+The training CLI additionally refuses a data/config fingerprint mismatch, a
+non-ignored destination, or a non-exact Git revision. A normal start requires a
+new output destination and a per-output nonblocking lock excludes concurrent
+writers. After an interruption, the recovery command is the identical training
+command with only `--resume` added. Resume accepts only the same partial output,
+provenance, configs, dataset and fingerprint, Git revision, and runtime
+identity; it revalidates completed result/checkpoint pairs and paired seeds.
+Only exact writer-owned atomic-write residue, next-checkpoint staging, and
+checkpoint-tombstone cleanup can be recovered. Lookalike and unknown artifacts
+are rejected rather than removed, and the canonical journal remains in the
+completed output. These output guards are verified safety boundaries, not
+empirical evidence. The no-registration EWT route is now prepared privately and
+has passed a single actual-data MPS optimizer-step preflight. The paired six-run
+study has not started.
 
 ## Model and artifact rights
 
-Dataset access does not automatically grant permission to redistribute trained weights. Before publishing a checkpoint, verify and document:
+Dataset access does not automatically authorize trained-weight publication.
+Before any checkpoint release, review:
 
-- MASC, source-text, and contributed-annotation obligations;
+- the pinned PropBank and UD EWT licenses, underlying-text notices, and required
+  citations;
+- whether training and the intended use comply with all applicable source
+  terms;
 - the pretrained encoder and tokenizer licenses;
-- whether the transformed training data creates additional sharing requirements;
-- the license and intended use of the resulting checkpoint.
+- whether transformed training data or weights create additional obligations;
+- privacy and memorization/leakage risk; and
+- the proposed checkpoint license, model card, and distribution channel.
 
-If any right remains unresolved, publish code, configuration, aggregate metrics, and reproduction instructions only—not the dataset or checkpoint.
-
-If MASC is ever reconsidered under a changed scope, the attribution record must name MASC and the American National Corpus project; retain supplied title and notices plus source-author, publisher, Penn Treebank, and PropBank contributor credits; link the exact archive source and [CC BY 3.0 US](https://creativecommons.org/licenses/by/3.0/us/); identify conversion and filtering changes; avoid implying ANC endorsement; and add no legal or technical restriction to redistributed licensed material. Preserve dated copies or fingerprints of the authoritative web evidence because the ZIP has no embedded archive-level license notice.
-
-The current [PropBank release repository](https://github.com/propbank/propbank-release) is a separate CC BY-SA 4.0 distribution and is used here only as format documentation. Copying its rolesets or annotation data would require a separate provenance and license record; its license neither proves nor replaces the rights basis for the pinned ANC-hosted archive.
-
-Wholly invented fixtures are publishable project code. Corpus-derived sentences, trees, role records, and prepared examples remain on hold unless separately cleared and attributed. Aggregate metrics may be published only in non-reconstructive form. Checkpoint publication remains conditional on the final training manifest, provenance review, model card, and memorization/leakage review.
+Until that review reaches an affirmative written decision, publish only
+source-neutral code and non-reconstructive aggregate metrics—not raw data,
+prepared examples, corpus excerpts, or weights.
 
 ## Repository controls
 
-The `.gitignore` exclusions are guardrails, not proof of compliance. Inspect every staged file before a commit. Restricted or unreviewed data must never enter Git history temporarily.
+`.gitignore` is a guardrail, not proof of compliance. Inspect every staged file
+before committing. Raw or prepared data must never enter Git history even
+temporarily. Tests and documentation may use only independently invented text,
+not paraphrased or transformed corpus excerpts.
 
-## Evaluation disclosure
-
-Every reported score must name the exact dataset release, split manifest, gold-span conversion policy, conversion coverage, scorer, role filtering, predicate source, seed set, and whether the test split influenced development. Unit-test success is software evidence only.
+Every future score must name both source commits, the prepared fingerprint,
+split and duplicate/conflict policies, conversion coverage, scorer, predicate
+source, seed set, configuration, Git revision, hardware, and whether test
+outcomes influenced development. Unit-test success and the EWT aggregate gate
+are software and data-feasibility evidence only.

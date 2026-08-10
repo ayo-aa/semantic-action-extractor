@@ -2,9 +2,12 @@
 
 ## Product problem
 
-Short operational sentences often identify an event and its participants, but downstream systems need structured records with auditable links to the original words. This project converts text into source-grounded predicate–argument frames and, where justified, a simpler action-record view.
+Short operational sentences often identify an event and its participants, but
+downstream systems need structured records with auditable links to the original
+words. This project converts text into source-grounded predicate–argument frames
+and, where justified, a simpler action-record view.
 
-The research contract is:
+The controlled research contract is:
 
 ```text
 (sentence words, supplied predicate index) -> one PropBank BIO tag per word
@@ -16,191 +19,339 @@ The end-to-end product contract is:
 raw text -> predicate candidates -> PropBank role frames -> optional action records
 ```
 
-These contracts are measured separately. The first matches the original homework; the second adds the predicate-discovery stage needed for raw user text.
+The first contract measures role labeling when the predicate is known. The
+second also measures predicate discovery. Their inputs, failure modes, and
+results must remain separate.
 
-## Research basis
+## Research basis and boundary
 
-The original completed homework implemented predicate-conditioned BERT semantic role labeling on course-provided OntoNotes-derived data. It used `bert-base-uncased`, WordPiece/BIO alignment, a token-type predicate indicator, a linear token-classification head, full fine-tuning, and exact labeled-span scoring.
+The architecture preserves the method of the original course exercise:
+`bert-base-uncased`, one sentence–predicate instance, WordPiece/BIO alignment,
+a token-type predicate indicator, a linear token-classification head, full
+fine-tuning, and exact labeled-span scoring.
 
-This repository is rebuilding the software foundation for that method as package modules. The current implementation is incomplete: it contains source-neutral PropBank/PTB conversion, alignment, decoding, scoring, model-construction primitives, and a read-only MASC feasibility audit, but no approved public-corpus adapter, training pipeline, checkpoint, or corpus result. It does not include the course dataset, derived labels, starter materials, notebook code, checkpoint, or course examples. Results from that restricted run are not results for this repository.
+This public implementation was written as independent package code.
+CourseWorks is not used. No Columbia course dataset, label inventory, starter
+material, assignment text, corpus example, checkpoint, or restricted-run
+measurement is used as project data or public empirical evidence.
 
 ## Research question
 
-Can the original predicate-conditioned BERT SRL method be reproduced on one lawfully usable public English corpus with exact labeled-role metrics, and what does its explicit predicate indicator contribute relative to the same model without that signal?
+Can predicate-conditioned BERT be reproducibly fine-tuned on a lawfully usable
+public English span-SRL corpus, and what does its explicit predicate signal
+contribute relative to the same model trained with an all-zero signal?
 
 ## Scope
 
 In scope:
 
-- English predicate-conditioned semantic role labeling;
-- one sentence–predicate pair per neural example;
-- PropBank core and modifier roles represented as BIO tags;
-- supplied verbal predicates for the first public reproduction;
-- source-grounded gold argument spans from an approved public corpus;
-- a separate rule-based predicate proposer and action-record demo for the raw-text path;
-- exact labeled-role evaluation and one bounded predicate-conditioning ablation.
+- English supplied-predicate semantic role labeling;
+- one sentence–verbal-predicate pair per model example;
+- PropBank core and modifier roles represented as word-level BIO tags;
+- source-grounded, overt gold argument spans;
+- a deterministic rule-based predicate proposer for the separate raw-text path;
+- exact labeled argument-span evaluation and one bounded signal ablation;
+- reproducible dataset, experiment, provenance, and checkpoint boundaries.
 
 Out of scope:
 
 - QA-SRL, QANom, question generation, and T5/QASem experiments;
-- a learned qualifier head, separate nominal-eventivity model, or joint multi-task training;
-- nominal-predicate coverage in the first public reproduction;
-- reproducing or redistributing restricted course artifacts;
-- universal actor/patient inference from `ARG0`/`ARG1`;
-- implicit arguments, coreference, intent, task assignment, or completion state;
+- nominal predicates in the first reproduction;
+- reproducing or redistributing course artifacts;
+- inferring implicit arguments or controllers to manufacture gold spans;
+- treating `ARG0`/`ARG1` as universal actor/patient categories;
+- coreference, intent, task assignment, or completion-state inference;
 - autonomous consequential decisions or production-readiness claims.
 
 ## Representation contract
 
-### Controlled SRL input
-
-Each example contains:
+Each prepared example must contain:
 
 - ordered surface words;
-- one supplied predicate word index;
-- one word-level BIO label per word;
-- stable sentence, document, and split identifiers;
-- optional token metadata needed to trace public-source annotations.
+- exactly one supplied predicate word index;
+- exactly one validated word-level BIO sequence;
+- stable example, sentence, document, and split identifiers;
+- traceable source metadata that does not enter the model input.
 
-### Neural labels
+`O` is label ID zero. The immutable label vocabulary is built from training
+examples only and contains the continuation closure required by WordPiece
+alignment. Development or test labels absent from that vocabulary are errors,
+not silently mapped to `O`. Special and padding positions use the loss ignore
+index `-100`.
 
-The label set consists of `O`, predicate labels such as `B-V`, and observed PropBank argument labels such as `B-ARG0`, `I-ARG0`, or `B-ARGM-TMP`. Special and padding positions receive the loss ignore index `-100`.
-
-`ARG0` and `ARG1` are predicate- and sense-relative. The research output preserves those labels exactly. A product adapter may offer actor/patient fields only as a declared convenience mapping, not as a universal semantic equivalence.
-
-### Source grounding
-
-Every emitted role span must map back to the source token sequence. Product-facing character spans must additionally satisfy:
+Every output role span maps to the original word sequence. Product-facing
+character spans additionally satisfy:
 
 ```python
 source_text[start:end] == span_text
 ```
 
-## Candidate public dataset contract
+## Data decision and frozen EWT contract
 
-No public corpus has been approved for training. Universal Proposition Bank 1.0 English EWT was rejected because it supplies dependency-head arguments rather than the gold spans required by the restored BIO contract.
+[Universal Proposition Bank 1.0 English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT)
+was rejected as the target because its dependency-head roles do not provide the
+full gold spans required here. That decision does not reject the underlying EWT
+source. [MASC PropBank](https://anc.org/data/masc/downloads/data-download/) was
+also rejected because trace-only arguments place its optimistic exact-span
+ceiling below the predeclared 99% gate.
 
-The 88K-word MASC PropBank release was subsequently acquired into ignored local storage and audited read-only. It was rejected: G1 remains incomplete, the provisional candidate manifest does not clear G2, and trace-only arguments cap optimistic exact-span recovery below the predeclared 99% G3 threshold. There is no MASC preparation adapter, split, or training command. The completed [audit](reports/masc_propbank_audit.md) and [gate record](docs/datasets/masc_propbank_gate.md) preserve the evidence.
+The selected route joins the pinned [PropBank EWT gold skeletons](https://github.com/propbank/propbank-release/tree/4abade0b53ce4a181e1d98b3518101c1a44d395a/data/google/ewt)
+at commit `4abade0b53ce4a181e1d98b3518101c1a44d395a` to the words in
+[UD English EWT r2.2](https://github.com/UniversalDependencies/UD_English-EWT/tree/6e064999a75b9c941c515ce1be98352e6f9831e0)
+at commit `6e064999a75b9c941c515ce1be98352e6f9831e0`. The implemented adapter
+pins both revisions and relevant worktrees, joins normalized document identity
+and sentence position, validates role-column structure and token width, assigns
+the official PropBank document splits, and applies fail-closed leakage and
+ambiguity controls.
 
-Any replacement corpus must satisfy all of the following before integration or training:
+This is a validated inferred cross-release join, not the LDC-based mapping
+prescribed by PropBank. The
+[aggregate-only private source review](reports/ewt_private_source_review.md)
+inspected all 13 metadata-versus-primary predicate-anchor divergences, the one
+token-width mismatch, and 30/30 deterministically selected aligned verbal
+records. It requires no account, registration, CourseWorks login, LDC download,
+or user-supplied corpus file.
 
-- resolve the authoritative archive, version, checksum, license, attribution, source-text lineage, and checkpoint implications;
-- verify that every included PropBank document and sentence joins to the supplied parse material;
-- inventory verbal predicates, roles, pointer operators, traces, references, continuations, discontinuities, multiword predicates, overlaps, and conversion losses;
-- demonstrate exact pointer-to-surface-span conversion on a manually checked, genre-aware sample;
-- define explicit include, exclude, and hard-error reasons with no silent gold-label repair;
-- freeze a deterministic document-disjoint, genre-aware train/development/test manifest before inspecting model outcomes.
+The frozen pre-outcome accounting is:
 
-Raw data and prepared examples stay outside Git. Only independently written adapter code, synthetic fixtures, fingerprints, aggregate counts, and approved reports may enter the repository.
+| Stage | Train | Development | Test | Total |
+| --- | ---: | ---: | ---: | ---: |
+| Structurally valid verbal predicates | — | — | — | 38,639 |
+| Aligned after one token-width exclusion | 31,174 | 3,806 | 3,655 | 38,635 |
+| Prepared eligible after leakage, conflict, and eval deduplication | 31,101 | 3,775 | 3,610 | 38,486 |
+| Modeled at `max_length=128` | 31,039 | 3,775 | 3,610 | 38,424 |
+
+The pinned tokenizer preflight builds a train-derived vocabulary of 111 labels,
+including `O` and continuation closure, with no development or test label
+absent from it. Private ignored preparation at implementation commit
+`9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42` reproduces these values with
+prepared-data fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+The split and provenance digests are recorded in
+[reports/ewt_preparation.md](reports/ewt_preparation.md). These are preparation
+and pre-outcome evidence, not training evidence or model accuracy.
+
+The [EWT gate](docs/datasets/ewt_propbank_gate.md) keeps raw sources,
+reconstructed text, prepared data, and future weights ignored and private.
+Source-neutral code and non-reconstructive aggregate metrics may be public;
+checkpoint release remains a separate review. BabySRL's 99.2501% structural
+audit is preserved as historical fallback evidence, but its registration and
+manual-review gates are not active while the EWT route remains viable.
 
 ## Target architecture
 
 For one sentence–predicate pair:
 
-1. tokenize pre-split words with the `bert-base-uncased` WordPiece tokenizer;
-2. align each word label to its pieces;
+1. tokenize pre-split words with a pinned `bert-base-uncased` tokenizer;
+2. align each training word label to all of its WordPieces;
 3. retain `B-*` on the first piece and use `I-*` on continuation pieces;
-4. assign `token_type_id = 1` only to the first WordPiece of the supplied predicate;
-5. pass token IDs, attention mask, and predicate indicator through BERT;
+4. set `token_type_id = 1` only on the first WordPiece of the supplied
+   predicate, or set every value to zero for the controlled ablation;
+5. pass token IDs, attention mask, and explicit token-type IDs through a pinned
+   BERT encoder;
 6. apply one learned linear classifier to every contextual token state;
-7. optimize cross-entropy while ignoring special and padding positions;
-8. collapse predictions to one label per input word and decode labeled spans.
+7. optimize cross-entropy over non-special, non-padding pieces;
+8. collapse subword predictions by taking exactly the first piece for each
+   source word;
+9. deterministically repair malformed predicted BIO transitions; and
+10. decode and score exact labeled argument spans.
 
-The original reproduction fully fine-tunes the encoder. The no-predicate variant is a controlled ablation, not a substitute for the reproduction.
+No input is silently truncated. Full tokenization occurs first, and examples
+longer than the configured maximum are dropped with explicit IDs and counts.
+The encoder and classifier are fully fine-tuned.
 
-Current implementation status: classic/modern PropBank record parsing, Penn Treebank pointer resolution, fail-closed gold BIO conversion, a source-neutral word-level example contract, word/subword gold-label alignment, the first-subword predicate indicator, BERT-plus-linear-head construction, ignored-label loss, BIO repair and decoding, generic micro exact labeled-span scoring, and a read-only MASC archive audit are implemented with synthetic tests. Replacement-corpus selection, a label-vocabulary builder, subword-prediction collapse, real-model smoke test, training loop, evaluation runner, and empirical results remain pending. Until those pieces exist, this repository is an SRL foundation rather than a usable neural pipeline.
+## Implemented software
+
+The following boundaries are implemented and tested with synthetic fixtures or
+injected runtimes:
+
+- source-neutral PropBank/PTB parsing and fail-closed pointer-to-BIO conversion;
+- strict canonical three-split JSONL and manifest I/O;
+- content fingerprints, duplicate identities, document/sentence leakage checks,
+  and exact sentence-text leakage checks;
+- immutable train-only label-vocabulary construction;
+- gold WordPiece alignment and first-subword prediction collapse;
+- deterministic split selection, full-length checks, collation, and explicit
+  predicate-signal/no-signal batches;
+- pinned model and tokenizer revision configuration;
+- BERT-plus-linear-head construction and ignored-label cross-entropy;
+- exact micro argument P/R/F1, per-role P/R/F1, token accuracy, repaired-tag
+  counts, and supplied-predicate diagnostics;
+- canonical configuration digests and run metadata containing Git revision,
+  data fingerprint, labels, packages, hardware, seeds, device, timestamps,
+  counts, drop statistics, and initial-state fingerprint;
+- atomic checkpoint bundles containing labels, metadata, and a state dictionary
+  whose SHA-256 is verified before load;
+- pinned PropBank/UD EWT source verification, inferred cross-release joining,
+  primary-`V` predicate anchoring, official splits, conflict/leakage controls,
+  aggregate audit, and ignored private preparation/provenance boundary;
+- aggregate-only private source-review evidence covering 13/13 anchor
+  divergences, the one width mismatch, and 30/30 deterministic aligned records;
+- AdamW training, deterministic batches, gradient clipping, linear warmup
+  followed by constant learning rate, development-only checkpoint selection,
+  best-state reload, and one test evaluation per run;
+- exactly three paired signal/no-signal seeds, with paired configurations
+  required to differ only by variant and paired initial states required to have
+  the same fingerprint;
+- frozen paired EWT configurations bound to the prepared fingerprint, plus a
+  passing actual-data MPS preflight for one full batch-32 forward/backward,
+  gradient-clipping, AdamW, and scheduler step at longest retained sequence 118;
+- a strict training CLI that validates both configs, the prepared-data
+  fingerprint, a new Git-ignored output location, and an exact Git revision;
+  stages all six runs, records non-sensitive partial-failure state, retains a
+  canonical complete journal, and atomically publishes canonical paired
+  results;
+- independently reviewed exact-match resume semantics: the same command plus
+  `--resume` must identify the same partial output, provenance, configs, data,
+  Git revision, and runtime; completed result/checkpoint and paired-seed
+  identities are revalidated; only exact interrupted atomic-write,
+  checkpoint-staging, and checkpoint-tombstone residue is recovered; unknown or
+  lookalike artifacts fail closed; and a per-output nonblocking lock excludes
+  concurrent writers; and
+- a validated-checkpoint systems benchmark CLI and canonical aggregate-only
+  contract for p50/p95 latency, batched throughput, explicitly identified peak
+  memory, checkpoint size, hardware, and package revisions without serializing
+  examples, IDs, paths, or raw timing samples.
+
+This software completeness and the single actual-data optimizer-step preflight
+are not model validation. The paired six-run PyTorch/Transformers study has not
+been run on the prepared EWT dataset.
 
 ## Hypotheses
 
-- **H1 — predicate signal:** Explicit token-type predicate conditioning will improve exact labeled-role F1 over the same encoder trained without a predicate signal.
-- **H2 — boundary difficulty:** Exact-span errors will concentrate in coordination, attachment, punctuation, discontinuities, and subordinate clauses.
-- **H3 — pipeline gap:** Only after the controlled reproduction is complete, a separately evaluated raw-text path is expected to underperform supplied-predicate evaluation because candidate discovery adds missed and spurious predicates.
+- **H1 — predicate signal:** Explicit token-type predicate conditioning will
+  improve exact labeled argument-span F1 over the all-zero signal variant.
+- **H2 — boundary difficulty:** Errors will concentrate in coordination,
+  attachment, punctuation, discontinuities, and subordinate clauses.
+- **H3 — pipeline gap:** A future raw-text pipeline will underperform the
+  supplied-predicate setting because predicate discovery adds misses and false
+  positives.
 
 ## Experiment plan
 
 ### E0 — rule baseline
 
-- Validate JSON schema, exact source offsets, configuration, and CLI behavior.
-- Keep the actor/patient action view separate from PropBank SRL claims.
-- After a corpus is selected, optionally measure predicate-candidate recall and latency without treating the baseline as a role-labeling comparator.
+- Keep the transparent rule extractor runnable through the API and CLI.
+- Preserve its action-record interpretation as a product heuristic.
+- Evaluate predicate-candidate recall and systems costs separately from neural
+  supplied-predicate role labeling.
 
-### E1 — SRL and data foundation
+### E1 — private EWT preparation and verification
 
-- Implement tokenizer-independent word/subword alignment.
-- Implement predicate indicators and the BERT token-classification boundary.
-- Implement exact labeled-span decoding and scoring, excluding predicate `V` and continuation `C-V` spans.
-- Keep the implemented pointer converter source-neutral; after a replacement source passes review, add one corpus adapter with only the joins and representations justified by that archive.
-- Preserve source document identifiers and either an official split or the predeclared document-disjoint manifest justified by the selected source.
-- Use only synthetic fixtures in repository tests.
+- Completed from the two pinned public checkouts using adapter implementation
+  commit `9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42`.
+- Prepared JSONL, manifest, and provenance remain only in ignored local storage.
+- Counts, exclusions, the 111-label train-derived inventory, and zero unseen
+  development/test labels match the frozen preflight.
+- The prepared fingerprint is
+  `2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
 
 ### E2 — public neural reproduction
 
-- Fine-tune `bert-base-uncased` with token-type predicate conditioning.
-- Start from the original homework hyperparameters: batch size 32, learning rate `1e-5`, two epochs, AdamW, and full encoder updates.
-- Treat those settings as the reproduction anchor, then document any change required by the public corpus or available hardware.
-- First complete one end-to-end development run. Freeze the final protocol, then run three fixed final seeds and report mean and sample standard deviation.
-- Select checkpoints on development data; evaluate the frozen test split once for the declared primary run.
+- Pin exact model and tokenizer repository revisions.
+- Use `configs/ewt_predicate_signal.toml` and
+  `configs/ewt_no_predicate_signal.toml`, whose canonical digests are
+  `9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc`
+  and `19ff94ff8bf839ee2fd5ebdab8ffed24b1ad7b243cc413a2ba687262f8f9d866`.
+- Use the frozen batch size 32, learning rate `1e-5`, two epochs, AdamW, full
+  fine-tuning, and constant learning rate.
+- Treat the passing actual-data MPS step at longest retained sequence 118,
+  111 labels, and batch size 32 as a fit preflight only, not a training result.
+- Run exactly three fixed seeds after the protocol is frozen.
+- Select each seed's checkpoint using development argument F1 or development
+  loss, as declared in the configuration.
+- Reload the selected state and evaluate test exactly once per run.
+- Report mean and sample standard deviation, never only the strongest seed.
+- If interrupted, rerun the identical training command with only `--resume`
+  added; never edit, copy, or hand-reconcile the partial run.
 
 ### E3 — predicate-conditioning ablation
 
-Hold data, split, encoder, optimizer, training budget, and seed set constant while comparing only:
+For every seed, compare:
 
-1. no predicate signal;
-2. the original token-type predicate indicator.
+1. `predicate_signal`, with one first-piece token-type indicator; and
+2. `no_predicate_signal`, with all-zero token-type IDs.
 
-### E4 — optional post-reproduction analysis
+Data fingerprint, labels, model/tokenizer revisions, optimizer, epochs, batch
+policy, seed, resolved device, and initial state must match within each pair.
 
-- Break down results by role, predicate frequency, sentence length, and WordPiece fragmentation.
-- Report truncation and dropped-example rates.
-- Measure single-example and batched p50/p95 latency, throughput, peak memory, checkpoint size, hardware, and package revisions.
-- Consider held-out-predicate or raw-text pipeline studies only after the public reproduction and bounded ablation are complete; scope and report them separately.
+### E4 — analysis and systems evidence
+
+- Report per-role performance and the preregistered error taxonomy.
+- Report overlength exclusions and BIO repairs.
+- Measure single-example and batched p50/p95 latency, throughput, peak memory,
+  checkpoint size, hardware, and package revisions.
+- Keep raw-text candidate and end-to-end analyses in separate tables.
 
 ## Metrics
 
-Primary public annotation metric:
+The primary metric is micro-averaged exact labeled argument-span precision,
+recall, and F1. A span is correct only when both its role and word boundaries
+match. Predicate `V` and `C-V` spans are excluded because the predicate is
+supplied.
 
-- micro-averaged exact labeled-span precision, recall, and F1 over gold PropBank argument roles.
+Secondary measures are:
 
-The metric excludes predicate `V` and continuation `C-V` spans. It gives no partial credit for a correct boundary with the wrong role. Any source construct that cannot be represented faithfully in the declared word-level BIO scheme must be reported through conversion coverage and exclusion counts rather than silently simplified.
-
-Secondary metrics:
-
-- per-role precision, recall, F1, and support;
-- token accuracy as a diagnostic;
-- malformed-BIO and repair counts;
-- predicate-candidate precision, recall, and F1;
-- end-to-end frame metrics;
-- truncation/drop rates;
-- latency, throughput, memory, and artifact size;
-- mean and sample standard deviation across paired seeds.
+- per-role exact P/R/F1 and support;
+- word-level token accuracy;
+- malformed prediction repairs;
+- supplied-predicate anchor, spurious-predicate, and predicate-overlap
+  diagnostics;
+- conversion coverage and every fail-closed exclusion reason;
+- overlength drop rates;
+- mean and sample standard deviation across paired seeds; and
+- separately scoped candidate, end-to-end, latency, throughput, memory, and
+  artifact-size measures.
 
 ## Experimental controls
 
-- An official public split is immutable when one exists; otherwise the versioned document-disjoint split manifest is frozen before model outcomes are inspected.
-- Test labels are not used for model selection or preprocessing decisions.
-- Every comparison uses the same prepared-data fingerprint.
-- Ablations share optimizer, training-token budget, batch policy, and paired seeds.
-- Pointer conversion, role filtering, and exclusion rules are frozen and versioned before model training.
-- All result tables record the Git revision, configuration, data release, scorer version, hardware, runtime, and package versions.
-- Unit tests are never reported as model-quality evidence.
+- The pinned PropBank official EWT document assignments cannot change after
+  outcomes are seen.
+- Exact text crossing split boundaries is excluded from every affected split;
+  conflicting identical inputs are excluded from every affected split; exact
+  evaluation semantics are deduplicated within development and test while
+  nonconflicting train frequency is preserved.
+- The vocabulary is learned from training examples only.
+- Test labels never select preprocessing, hyperparameters, or checkpoints.
+- Paired variants may differ only in the predicate-signal switch.
+- Every result records the prepared-data fingerprint, configuration digest,
+  Git revision, model/tokenizer revisions, labels, seed, hardware, device,
+  package versions, drop counts, and checkpoint hash.
+- Unit tests and aggregate conversion counts are never presented as model
+  accuracy.
 
 ## Definition of done
 
-E1 is complete when:
+### Completed software milestone
 
-- no QA-specific implementation or active data/experiment contract remains in the restored scope (the scope exclusion may name discarded directions);
-- the dependency-free baseline still installs and runs;
-- SRL BIO alignment, decoding, and exact metrics have synthetic automated tests;
-- the approved public adapter preserves supplied predicates, gold role spans, split assignments, and documents;
-- all pointer-conversion losses and unsupported source constructs are counted with explicit reasons;
-- restricted course artifacts are absent;
-- the README diagram accurately renders the implemented and planned boundaries.
+The public code milestone is complete when the implemented boundaries above,
+the paired training command, and their synthetic tests pass; the MASC no-go,
+selected EWT gate, and BabySRL fallback status reconcile exactly; raw/prepared
+data remain outside Git; and the documentation preserves the supplied-predicate
+versus raw-text distinction. Those deliverables are present in the current
+branch.
 
-The research project is complete when:
+### Completed pre-outcome evidence
 
-- public-data preparation is reproducible without committing the corpus;
-- the original BERT reproduction and all declared baselines run from versioned configurations;
-- multi-seed public results, robustness analysis, and systems costs are reported;
-- supplied-predicate and end-to-end claims remain separate;
-- any released checkpoint has verified redistribution rights and a completed model card;
-- limitations and negative findings are reported alongside the strongest result.
+- Ignored EWT preparation reproduces every frozen gate count at fingerprint
+  `2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+- The 111-label training-derived vocabulary and both paired configuration
+  digests are frozen.
+- The pinned real PyTorch/Transformers predicate variant completed one full
+  prepared-data batch-32 optimizer step on MPS.
+
+### Remaining evidence milestone
+
+The research project is **not** complete until all of the following occur:
+
+- all three paired seeds complete for both variants;
+- development, test, per-role, error, overlength, and repair results are
+  reported without selecting the best seed;
+- latency, throughput, memory, hardware, runtime, and checkpoint-size costs are
+  measured;
+- supplied-predicate and raw-text results remain separately labeled; and
+- any proposed checkpoint passes an explicit redistribution, privacy,
+  memorization/leakage, and model-card review.
+
+Until then, result tables remain blank and the repository makes no trained-
+model, operational-readiness, or checkpoint-availability claim.

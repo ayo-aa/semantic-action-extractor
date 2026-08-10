@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Mapping, Protocol, Sequence, TypeVar
 
 from .bio import continuation_tag, split_bio_tag
 
@@ -12,6 +12,9 @@ class WordTokenizer(Protocol):
     """The small fast-tokenizer interface needed by this module."""
 
     def __call__(self, words: list[str], **kwargs: Any) -> Mapping[str, Any]: ...
+
+
+Prediction = TypeVar("Prediction")
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +42,88 @@ class AlignedSRLExample:
             "token_type_ids": list(self.token_type_ids),
             "labels": list(self.labels),
         }
+
+
+def collapse_subword_predictions(
+    token_predictions: Sequence[Prediction],
+    word_ids: Sequence[int | None],
+    num_words: int,
+    *,
+    attention_mask: Sequence[int] | None = None,
+) -> tuple[Prediction, ...]:
+    """Collapse flat token predictions to one prediction per input word.
+
+    The prediction at the first active subword of each word is retained. Later
+    subword predictions are ignored rather than voted or repaired. Positions
+    with a ``None`` word ID are tokenizer special tokens and are ignored;
+    masked positions are padding, must also have a ``None`` word ID, and are
+    ignored. The returned tuple therefore follows the original word order.
+
+    ``token_predictions`` may contain label IDs or already decoded labels. The
+    function deliberately does not interpret prediction values; label-vocabulary
+    lookup and BIO repair remain separate boundaries.
+    """
+
+    if isinstance(token_predictions, (str, bytes)):
+        raise TypeError("token predictions must be a flat sequence")
+    if isinstance(word_ids, (str, bytes)):
+        raise TypeError("word IDs must be a flat sequence")
+    if type(num_words) is not int:
+        raise TypeError("number of words must be an integer")
+    if num_words <= 0:
+        raise ValueError("number of words must be positive")
+    if len(token_predictions) != len(word_ids):
+        raise ValueError("token predictions and word IDs must have the same length")
+
+    if attention_mask is None:
+        masks: Sequence[int] = (1,) * len(word_ids)
+    else:
+        if isinstance(attention_mask, (str, bytes)):
+            raise TypeError("attention mask must be a flat sequence")
+        if len(attention_mask) != len(word_ids):
+            raise ValueError("attention mask and word IDs must have the same length")
+        masks = attention_mask
+
+    first_piece_predictions: list[Prediction] = []
+    visible_word_order: list[int] = []
+    previous_word_id: int | None = None
+
+    for token_index, (prediction, word_id, mask) in enumerate(
+        zip(token_predictions, word_ids, masks, strict=True)
+    ):
+        if isinstance(prediction, (list, tuple)):
+            raise TypeError(
+                f"token prediction at token {token_index} must be a scalar value"
+            )
+        if type(mask) is not int or mask not in {0, 1}:
+            raise ValueError(
+                f"attention mask at token {token_index} must be integer 0 or 1"
+            )
+        if word_id is not None and type(word_id) is not int:
+            raise TypeError("word IDs must be integers or None")
+        if mask == 0:
+            if word_id is not None:
+                raise ValueError(
+                    f"padding token {token_index} cannot reference an input word"
+                )
+            previous_word_id = None
+            continue
+        if word_id is None:
+            previous_word_id = None
+            continue
+        if word_id < 0 or word_id >= num_words:
+            raise ValueError(f"invalid word ID at token {token_index}: {word_id}")
+
+        if word_id != previous_word_id:
+            visible_word_order.append(word_id)
+            first_piece_predictions.append(prediction)
+        previous_word_id = word_id
+
+    if visible_word_order != list(range(num_words)):
+        raise ValueError(
+            "word IDs omitted, reordered, or split one or more input words"
+        )
+    return tuple(first_piece_predictions)
 
 
 def _word_ids(encoded: Mapping[str, Any]) -> list[int | None]:
