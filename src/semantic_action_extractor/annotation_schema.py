@@ -13,10 +13,10 @@ from dataclasses import dataclass, field
 import math
 from typing import Any, Iterable, Mapping, Sequence
 
-from .schema import PREDICATE_TYPES, TextSpan
+from .schema import MENTION_QUALIFIER_KINDS, PREDICATE_TYPES, TextSpan
 
 
-ANNOTATION_SCHEMA_VERSION = "0.2.0"
+ANNOTATION_SCHEMA_VERSION = "0.3.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -385,6 +385,46 @@ class EventivityJudgment:
 
 
 @dataclass(frozen=True, slots=True)
+class AnnotationMentionQualifier:
+    """One source-grounded qualifier on how an event is mentioned.
+
+    Qualifiers describe wording such as negation, possibility, planning, or
+    reporting. They do not assert whether the event occurred, was completed,
+    or belongs to a workflow state.
+    """
+
+    kind: str
+    evidence: tuple[TokenAlignedSpan, ...]
+
+    def __post_init__(self) -> None:
+        if self.kind not in MENTION_QUALIFIER_KINDS:
+            choices = ", ".join(sorted(MENTION_QUALIFIER_KINDS))
+            raise ValueError(f"mention qualifier kind must be one of: {choices}")
+        if not isinstance(self.evidence, tuple) or not self.evidence:
+            raise ValueError(
+                "mention qualifier evidence must be a non-empty tuple of spans"
+            )
+        previous_token_end = -1
+        for span in self.evidence:
+            if not isinstance(span, TokenAlignedSpan):
+                raise TypeError(
+                    "mention qualifier evidence must contain only "
+                    "TokenAlignedSpan values"
+                )
+            if span.token_start < previous_token_end:
+                raise ValueError(
+                    "mention qualifier evidence must be ordered and non-overlapping"
+                )
+            previous_token_end = span.token_end
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind,
+            "evidence": [span.to_dict() for span in self.evidence],
+        }
+
+
+@dataclass(frozen=True, slots=True)
 class PredicateCandidate:
     """A verbal or nominal predicate candidate and its complete annotations.
 
@@ -404,6 +444,7 @@ class PredicateCandidate:
     )
     questions: tuple[QASRLQuestion, ...] = field(default_factory=tuple)
     metadata: Mapping[str, Any] = field(default_factory=dict)
+    mention_qualifiers: tuple[AnnotationMentionQualifier, ...] | None = None
 
     def __post_init__(self) -> None:
         _require_nonempty(self.candidate_id, label="candidate_id")
@@ -442,6 +483,33 @@ class PredicateCandidate:
             (question.question_id for question in self.questions),
             label="question_id",
         )
+        if self.mention_qualifiers is not None:
+            if not isinstance(self.mention_qualifiers, tuple):
+                raise TypeError(
+                    "mention_qualifiers must be a tuple or None when not assessed"
+                )
+            if any(
+                not isinstance(qualifier, AnnotationMentionQualifier)
+                for qualifier in self.mention_qualifiers
+            ):
+                raise TypeError(
+                    "mention_qualifiers must contain only "
+                    "AnnotationMentionQualifier values"
+                )
+            _require_unique_ids(
+                (qualifier.kind for qualifier in self.mention_qualifiers),
+                label="mention qualifier kind",
+            )
+            if (
+                self.eventivity_judgments
+                and not any(
+                    judgment.is_eventive
+                    for judgment in self.eventivity_judgments
+                )
+            ):
+                raise ValueError(
+                    "a non-eventive candidate cannot contain mention qualifiers"
+                )
         if (
             self.questions
             and self.eventivity_judgments
@@ -470,6 +538,11 @@ class PredicateCandidate:
                 judgment.to_dict() for judgment in self.eventivity_judgments
             ],
             "questions": [question.to_dict() for question in self.questions],
+            "mention_qualifiers": (
+                None
+                if self.mention_qualifiers is None
+                else [qualifier.to_dict() for qualifier in self.mention_qualifiers]
+            ),
             "metadata": _json_copy(self.metadata),
         }
 
@@ -507,6 +580,17 @@ class AnnotationRecord:
                 tokens=self.tokens,
                 label=f"candidate {candidate.candidate_id}",
             )
+            if candidate.mention_qualifiers is not None:
+                for qualifier in candidate.mention_qualifiers:
+                    _validate_answer_spans(
+                        qualifier.evidence,
+                        text=self.text,
+                        tokens=self.tokens,
+                        label=(
+                            f"candidate {candidate.candidate_id} mention qualifier "
+                            f"{qualifier.kind}"
+                        ),
+                    )
             for question in candidate.questions:
                 for judgment in question.judgments:
                     for answer in judgment.answers:

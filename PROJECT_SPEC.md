@@ -11,13 +11,14 @@ text
   -> verbal and nominal candidate generation
   -> predicate or eventivity classification
   -> one selected predicate in context
+  -> optional predicate-local mention qualifiers + exact cue evidence
   -> predicate-conditioned argument-span detection
   -> seven-slot QA-SRL role prediction for research evaluation
   -> grounded event record + grouped spans + exact source offsets + confidence
   -> optional separately evaluated product-role projection
 ```
 
-The output can support human-reviewed search, case timelines, structured-field suggestions, annotation, and research analysis. The project does not equate semantic events with work assignments.
+The output can support human-reviewed search, case timelines, structured-field suggestions, annotation, and research analysis. The project does not equate semantic events with work assignments or treat linguistic framing as proof of real-world event status.
 
 ## Terminology and task boundary
 
@@ -27,9 +28,10 @@ The output can support human-reviewed search, case timelines, structured-field s
 - A nominal predicate’s **related verbal form** is the verb used to express its QA-SRL questions; for `approval`, the nominal lemma is `approval` and the related verbal form is `approve`.
 - An **argument** is a participant or circumstance linked to the predicate.
 - A **role question** is the internal QA-SRL label that describes that link, such as `who approved something?`; it is not a question that an end user must supply.
+- A **mention qualifier** records how the source frames one predicate mention, such as `negated`, `possible`, `planned`, or `reported`, together with the exact source cue. Qualifier kinds can co-occur.
 - A **source-grounded span** copies text from the input and records zero-based, end-exclusive Unicode code-point offsets.
 
-The project performs source-grounded event and information extraction using an open predicate–argument representation. It is not a typed event ontology, intent classifier, action-item detector, assignment tracker, or system for determining whether work is planned or complete.
+The project performs source-grounded event and information extraction using an open predicate–argument representation. Mention qualifiers describe wording only: they do not establish truth, occurrence, completion, assignment, commitment, ownership, due dates, or execution. The project is not a typed event ontology, intent classifier, action-item detector, or assignment tracker.
 
 ## Prior result and research gap
 
@@ -62,8 +64,9 @@ The versioned `ActionFrame` response remains intentionally compact. The research
 - zero or more source-grounded arguments;
 - a role and role scheme for each argument;
 - an optional group identifier that binds multiple answer spans to one role question;
+- an optional mention-qualifier assessment with typed kinds and exact source evidence: `None` means not assessed, an empty tuple means assessed with no supported cue, and a populated tuple preserves every supported predicate-local qualifier;
 - a required typed frame score plus optional typed predicate and argument confidence;
-- an optional source-grounded cue, plus a sentence index and extractor identifier.
+- an optional source-grounded argument cue, plus a sentence index and extractor identifier.
 
 The public schema supports three role schemes:
 
@@ -75,7 +78,7 @@ The public schema supports three role schemes:
 
 ### Research annotation schema
 
-Dataset preparation uses a separate evidence-preserving canonical representation. It preserves release and split identity, source and document identifiers, token boundaries, predicate candidates, verbal inflection paradigms, negative nominal-eventivity decisions, all seven question slots, question and answer source information, the grammatical fields supplied by each release, grouped or discontinuous answers, alternative spans, and multiple annotation judgments. Documented normalizations convert empty slots to `_`, reconstruct canonical text from release tokens, deduplicate byte-identical QANom rows while counting them, and discard release-only index values while retaining their counts.
+Dataset preparation uses a separate evidence-preserving canonical representation. It preserves release and split identity, source and document identifiers, token boundaries, predicate candidates, verbal inflection paradigms, negative nominal-eventivity decisions, all seven question slots, question and answer source information, the grammatical fields supplied by each release, grouped or discontinuous answers, alternative spans, multiple annotation judgments, and optional predicate-local mention qualifiers with token- and character-aligned cue evidence. `None` and an empty qualifier tuple retain the same not-assessed versus assessed-negative distinction as the public schema. Documented normalizations convert empty slots to `_`, reconstruct canonical text from release tokens, deduplicate byte-identical QANom rows while counting them, and discard release-only index values while retaining their counts.
 
 This separation prevents training evidence from being flattened merely to fit a simple inference response. Adapters convert verified dataset records into the research schema; model predictions convert into the public schema only at the serving boundary.
 
@@ -105,7 +108,7 @@ Primary references:
 
 A small, frozen challenge set will test constructions resembling support and operations notes that the research corpora may not represent. It will contain newly authored or explicitly licensed text. Unless it contains representative real operational text, results will be described as **operational-style** performance rather than proof of operational-domain performance.
 
-Annotation guidance, adjudication, exclusions, and a held-out test split will be fixed before model development uses the set.
+Candidate pilot materials are prepared: the protocol, annotation guide, source-and-rights notice, and authoring/annotation workbook. The 20 newly authored pilot notes, repeat annotation passes, independent annotation, adjudication, final exclusions, held-out split, and freeze are still pending. Candidate materials do not authorize model selection or complete E1.
 
 ### Data controls
 
@@ -117,13 +120,14 @@ Restricted OntoNotes-derived course data, outputs, and checkpoints remain outsid
 
 ### Candidate generation and predicate classification
 
-The complete pipeline separates three decisions:
+The complete pipeline separates four decisions:
 
 1. **Candidate generation:** identify eligible verbal tokens and lexically related nominal candidates in raw text.
 2. **Predicate classification:** decide whether a verbal candidate is in task scope and whether a nominal candidate is eventive in context.
-3. **Argument extraction:** given one positive predicate, recover its question-answer relations.
+3. **Mention qualification:** for an assessed positive predicate, identify supported linguistic framing and its exact source cues without inferring occurrence or workflow state.
+4. **Argument extraction:** given one positive predicate, recover its question-answer relations.
 
-Candidate-generator recall, predicate-classifier F1, supplied-predicate argument F1, and complete-pipeline F1 are reported separately. A supplied predicate is a component diagnostic, not evidence that the raw-text system solved predicate discovery. Verbal eligibility rules explicitly address auxiliaries, light verbs, and stative constructions.
+Candidate-generator recall, predicate-classifier F1, mention-qualifier label and exact-evidence F1, supplied-predicate argument F1, and complete-pipeline F1 are reported separately. A supplied predicate is a component diagnostic, not evidence that the raw-text system solved predicate discovery. Verbal eligibility rules explicitly address auxiliaries, light verbs, and stative constructions.
 
 ### Source-constrained encoder parser
 
@@ -135,9 +139,10 @@ For one predicate in context, the model performs:
 4. constrained prediction of the seven QA-SRL question slots;
 5. deterministic realization of the role question;
 6. grouping of multiple answer spans that share one question through an explicit group identifier;
-7. token-to-character offset reconstruction and schema validation.
+7. optional predicate-local mention-qualifier and cue-evidence prediction;
+8. token-to-character offset reconstruction and schema validation.
 
-The implementation owns token-to-subword alignment, predicate encoding, span decoding, question-slot constraints, source reconstruction, confidence calculation, checkpointing, and evaluation.
+The implementation owns token-to-subword alignment, predicate encoding, span decoding, question-slot constraints, qualifier evidence grounding, source reconstruction, confidence calculation, checkpointing, and evaluation.
 
 The main BERT-family encoder supports the predecessor notebook’s token-type predicate indicator. A matched RoBERTa-family portability run tests marker and learned-feature conditioning without relying on segment embeddings.
 
@@ -159,6 +164,7 @@ The canonical research output preserves QA-SRL role questions. An optional downs
 - After E1 supplies compatible evaluation records, measure predicate detection, unlabeled answer overlap, exact spans, offset validity, latency, and error categories.
 - Do not report labeled QA-SRL F1 for its surface roles.
 - Treat its score as a completeness heuristic, not a probability.
+- Treat its lexical mention qualifiers as transparent interface heuristics, not resolved semantic scope or real-world status.
 
 ### E1: Annotation, scorer, and challenge-set layer
 
@@ -167,10 +173,12 @@ The canonical research output preserves QA-SRL role questions. An optional downs
 - Reproduce reference-compatible metrics with tested fixtures.
 - Add a corrected end-to-end scorer over the union of gold and predicted predicates.
 - Define the project’s primary labeled scorer and exact predicate-matching rule.
+- Preserve optional source-grounded mention qualifiers in the public, canonical annotation, and evaluation-bundle schemas.
+- Score qualifier kinds and exact grouped cue evidence only under the corrected primary contract; leave both reference-compatible contracts unchanged.
 - Construct, annotate, adjudicate, and freeze the operational-style challenge set before model selection uses it.
 - Add document, sentence, predicate-family, and derived-example leakage checks.
 
-The adapters, manifests, canonical readers, full-release validation, fixed training quarantine, named consolidation, evaluation bundles, and three scorer contracts are implemented. The operational-style challenge set remains to be authored, independently annotated, adjudicated, and frozen, so E1 remains incomplete.
+The adapters, manifests, canonical readers, full-release validation, fixed training quarantine, named consolidation, evaluation bundles, three scorer contracts, optional source-grounded mention-qualifier fields, and primary-only qualifier metrics are implemented. Candidate pilot protocol, guide, source-rights notice, and workbook are ready. The 20 pilot notes, independent annotation, adjudication, final split, and freeze remain pending, so E1 remains incomplete.
 
 ### E2: QASem generative reproduction
 
@@ -225,6 +233,7 @@ The declared verbal non-inferiority margin is one labeled-F1 point. Joint traini
 - Train or adapt verbal predicate and nominal eventivity classifiers.
 - Evaluate supplied-candidate classification separately from candidate generation.
 - Compare supplied-predicate extraction with the complete pipeline.
+- Predict predicate-local mention qualifiers and exact cue evidence as a separately reported stage.
 - Attribute missed predicates, spurious predicates, duplicate frames, and lost downstream arguments to their originating stage.
 
 ### E7: Generalization, calibration, and efficiency
@@ -261,6 +270,16 @@ The primary research metric is labeled QA-pair F1 using maximum one-to-one match
 - supplied-predicate and detected-predicate results;
 - exact source-offset validity, duplicate rate, and malformed-output rate.
 
+### Mention qualifiers
+
+- qualifier-kind precision, recall, and F1 for predicates whose gold qualifier assessment is present;
+- exact grouped qualifier-evidence precision, recall, and F1, requiring the same kind and identical token and character spans;
+- gold, predicted, and shared qualifier-assessment coverage, preserving `None` as not assessed and an empty tuple as assessed with no supported cue;
+- primary end-to-end accounting in which missed and spurious predicates propagate qualifier false negatives and false positives; and
+- no qualifier metrics under `qasrl-gs-compatible-v1` or `qanom-reference-v1`, whose reference contracts remain unchanged.
+
+These metrics evaluate preservation of linguistic framing only. They do not evaluate or imply real-world occurrence, completion, assignment, commitment, or execution.
+
 ### Calibration and confidence–coverage behavior
 
 - predicate ECE, Brier score, and negative log-likelihood, where correctness means an exactly matched eligible predicate;
@@ -288,7 +307,7 @@ The standard analysis includes:
 - controlled held-out families, grouping inflections and verbal–nominal relatives;
 - source domain with size-matched training comparisons;
 - sentence length and predicate–argument distance;
-- passive voice, coordination, negation, and modality;
+- passive voice, coordination, and each supported mention-qualifier kind and combination;
 - explicit versus implicit arguments;
 - subword fragmentation and truncation;
 - candidate-generation, predicate-classification, and argument-model error attribution;
@@ -315,6 +334,7 @@ Aggregation rejects incomplete seed sets, mixed data revisions, unequal primary-
 
 - The task boundary distinguishes semantic predicates from action items and status inference.
 - The public inference schema represents role-neutral verbal and nominal actions with exact source spans.
+- The public and canonical schemas optionally preserve typed mention qualifiers with exact source evidence while distinguishing not assessed from assessed-negative.
 - The research annotation schema preserves verified supervision without flattening alternatives or judgments.
 - The rule baseline, schemas, configuration loader, and CLI have automated regression tests.
 - Documentation distinguishes prior results, current software, planned experiments, and measured conclusions.
@@ -331,6 +351,7 @@ Aggregation rejects incomplete seed sets, mixed data revisions, unequal primary-
 - A bounded verbal raw-text vertical slice emits evidence-linked records and reports stage-specific errors and latency before the broader conditioning and joint-training studies conclude.
 - Conditioning and separate-versus-joint studies use matched data, compute, and paired seeds.
 - Candidate generation, predicate classification, supplied-predicate extraction, and complete-pipeline results remain separate.
+- Primary results report mention-qualifier label and exact-evidence quality without changing the two reference-compatible contracts.
 - Results include exact grounding, calibration, generalization, efficiency, error analysis, limitations, and negative findings.
 - Any released checkpoint has verified redistribution rights, a model card, checksums, and an inference example.
 - The CLI and Python API can select the rule or released neural backend through the versioned public schema.
@@ -341,5 +362,6 @@ Aggregation rejects incomplete seed sets, mixed data revisions, unequal primary-
 - Pretraining a foundation model from random initialization.
 - Re-claiming unified QA-SRL/QANom parsing, joint learning, or predicate markers as first demonstrations.
 - Claiming that semantic actions are assignments, commitments, action items, or completed work.
+- Inferring real-world occurrence, truth, completion, or workflow state from mention qualifiers.
 - Inferring implicit participants, resolving cross-document identities, or autonomously executing workflows in the core study.
 - Claiming production readiness from research corpora, operational-style examples, synthetic data, or unit tests.

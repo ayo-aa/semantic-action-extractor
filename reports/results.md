@@ -2,7 +2,7 @@
 
 ## Current status
 
-No corpus-level extraction result is available. Automated tests and full-release preparation checks verify data-pipeline and software behavior only; they do not provide evidence of model quality.
+No corpus-level extraction result is available. Automated tests and full-release preparation checks verify data-pipeline and software behavior only; they do not provide evidence of model quality. The implemented schemas can preserve optional, source-grounded mention qualifiers, and the primary scorer can measure qualifier labels and exact evidence; no challenge annotation or model result is claimed yet.
 
 QA-SRL Bank 2.1, QA-SRL Gold Standard, and QANom are the selected research sources. Add model values only when each result bundle identifies the dataset release, split, scorer mode, predicate source, consolidation rule, seed, training allowance, hardware, preprocessing revision, and Git commit.
 
@@ -12,8 +12,9 @@ QA-SRL Bank 2.1, QA-SRL Gold Standard, and QANom are the selected research sourc
 | QA-SRL adapter | Implemented | Synthetic fixtures and every release file; documented counts reproduced | Model-facing dataset construction |
 | QANom adapter | Implemented | Synthetic fixtures and all three release splits; documented counts reproduced | Model-facing dataset construction |
 | Manifests, canonical readers, and quarantine | Implemented | Round-trip, atomicity, drift, overlap, and full-corpus checks | Apply to every future training artifact |
-| Consolidation and scorer contracts | Implemented | Boundary, matching, duplicate, role, and serialization fixtures | Model prediction regression and corpus results |
-| Operational-style challenge set | Pending | None | Author, independently annotate, adjudicate, and freeze |
+| Consolidation and scorer contracts | Implemented | Boundary, matching, duplicate, role, qualifier, and serialization fixtures; reference-compatible contracts unchanged | Model prediction regression and corpus results |
+| Mention-qualifier representation and primary metrics | Implemented | Optional public, canonical, and evaluation-bundle fields with exact cue grounding; primary-only label and exact-evidence F1 fixtures | Annotated challenge records and model predictions |
+| Operational-style challenge set | Candidate pilot materials ready | Candidate protocol, annotation guide, source-and-rights notice, and pilot workbook | Author 20 pilot notes; complete independent annotation, adjudication, split assignment, and freeze |
 
 ## Answer to the primary research question
 
@@ -73,6 +74,19 @@ This table prevents candidate-generation and predicate-classification errors fro
 | Structured encoder | Gold | TK | TK | TK | TK | TK | Pending |
 | Best complete pipeline | Detected | TK | TK | TK | TK | TK | Pending |
 
+## Mention-qualifier preservation
+
+Mention qualifiers describe how the source frames an event mention; they do not establish truth, occurrence, completion, assignment, commitment, or execution. `primary-end-to-end-v1` reports qualifier-kind F1 and exact grounded evidence F1. `qasrl-gs-compatible-v1` and `qanom-reference-v1` remain unchanged and do not score qualifiers.
+
+| System | Assessed-predicate coverage | Qualifier-kind precision | Qualifier-kind recall | Qualifier-kind F1 | Exact evidence F1 | Status |
+| --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Rule baseline | TK | TK | TK | TK | TK | Corpus evaluation pending |
+| QASem reproduction | TK | TK | TK | TK | TK | Pending |
+| Structured encoder | TK | TK | TK | TK | TK | Pending |
+| Best complete pipeline | TK | TK | TK | TK | TK | Pending |
+
+An unassessed predicate is excluded from gold qualifier scoring; an assessed predicate with no supported cue remains an explicit negative case. Exact evidence requires the correct qualifier kind and identical grouped token and character spans.
+
 ## Generalization
 
 | Evaluation | In-distribution F1 | Held-out F1 | Absolute gap | Split fingerprint | Status |
@@ -80,7 +94,7 @@ This table prevents candidate-generation and predicate-classification errors fro
 | Naturally unseen predicate families | TK | TK | TK | TK | Pending |
 | Controlled held-out families | TK | TK | TK | TK | Pending |
 | Size-matched source-domain transfer | TK | TK | TK | TK | Pending |
-| Frozen operational-style set | TK | TK | TK | TK | Pending |
+| Frozen operational-style set | TK | TK | TK | TK | Candidate pilot materials ready; 20 notes, independent annotation, adjudication, and freeze pending |
 
 ## Calibration and confidence–coverage behavior
 
@@ -105,8 +119,9 @@ Predicate and argument confidence are evaluated separately because they answer d
 2. Predicate-conditioning performance across paired seeds.
 3. Separate versus joint verbal and nominal performance.
 4. In-distribution versus held-out predicate-family and source-domain results.
-5. Predicate and argument risk–coverage curves.
-6. Quality versus batch-one latency and peak memory.
+5. Mention-qualifier label versus exact-evidence performance by qualifier kind.
+6. Predicate and argument risk–coverage curves.
+7. Quality versus batch-one latency and peak memory.
 
 Figures are added only after their result bundles pass source-identity, completeness, and matched-comparison checks.
 

@@ -1,5 +1,5 @@
 {
-  "schema_version": "0.2.0",
+  "schema_version": "0.3.0",
   "text": "Maya emailed the signed contract to Jordan on Tuesday.\nThe support team escalated the incident to Priya.\n",
   "actions": [
     {
@@ -60,6 +60,7 @@
           }
         }
       ],
+      "mention_qualifiers": [],
       "sentence_index": 0,
       "score": 0.85,
       "score_type": "heuristic_completeness",
@@ -109,6 +110,7 @@
           }
         }
       ],
+      "mention_qualifiers": [],
       "sentence_index": 1,
       "score": 0.85,
       "score_type": "heuristic_completeness",

@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Mapping
 
-from ..schema import PREDICATE_TYPES
+from ..schema import MENTION_QUALIFIER_KINDS, PREDICATE_TYPES
 
 
 def _nonempty(value: str, *, label: str) -> None:
@@ -63,6 +63,30 @@ class EvaluationArgument:
                 else [list(span) for span in self.character_spans]
             ),
         }
+
+
+@dataclass(frozen=True, slots=True)
+class EvaluationMentionQualifier:
+    """One qualifier kind and its grouped token/character evidence spans."""
+
+    kind: str
+    evidence: EvaluationArgument
+
+    def __post_init__(self) -> None:
+        if self.kind not in MENTION_QUALIFIER_KINDS:
+            choices = ", ".join(sorted(MENTION_QUALIFIER_KINDS))
+            raise ValueError(f"mention qualifier kind must be one of: {choices}")
+        if not isinstance(self.evidence, EvaluationArgument):
+            raise TypeError(
+                "mention qualifier evidence must be an EvaluationArgument"
+            )
+        if self.evidence.character_spans is None:
+            raise ValueError(
+                "mention qualifier evidence requires character spans"
+            )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {"kind": self.kind, "evidence": self.evidence.to_dict()}
 
 
 @dataclass(frozen=True, slots=True)
@@ -137,6 +161,7 @@ class EvaluationPredicate:
     is_eventive: bool
     lemma: str | None = None
     pairs: tuple[EvaluationQAPair, ...] = field(default_factory=tuple)
+    mention_qualifiers: tuple[EvaluationMentionQualifier, ...] | None = None
 
     def __post_init__(self) -> None:
         if not isinstance(self.is_eventive, bool):
@@ -148,6 +173,28 @@ class EvaluationPredicate:
             raise ValueError("pair IDs must be unique within a predicate")
         if not self.is_eventive and self.pairs:
             raise ValueError("a non-eventive predicate cannot contain QA pairs")
+        if not self.is_eventive and self.mention_qualifiers is not None:
+            raise ValueError(
+                "a non-eventive predicate cannot contain mention qualifiers"
+            )
+        if self.mention_qualifiers is not None:
+            if not isinstance(self.mention_qualifiers, tuple):
+                raise TypeError(
+                    "mention_qualifiers must be a tuple or None when not assessed"
+                )
+            if any(
+                not isinstance(qualifier, EvaluationMentionQualifier)
+                for qualifier in self.mention_qualifiers
+            ):
+                raise TypeError(
+                    "mention_qualifiers must contain only "
+                    "EvaluationMentionQualifier values"
+                )
+            kinds = [qualifier.kind for qualifier in self.mention_qualifiers]
+            if len(kinds) != len(set(kinds)):
+                raise ValueError(
+                    "mention qualifier kinds must be unique within a predicate"
+                )
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -155,6 +202,11 @@ class EvaluationPredicate:
             "is_eventive": self.is_eventive,
             "lemma": self.lemma,
             "pairs": [pair.to_dict() for pair in self.pairs],
+            "mention_qualifiers": (
+                None
+                if self.mention_qualifiers is None
+                else [item.to_dict() for item in self.mention_qualifiers]
+            ),
         }
 
 

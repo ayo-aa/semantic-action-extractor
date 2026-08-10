@@ -1,6 +1,7 @@
 import unittest
 
 from semantic_action_extractor.annotation_schema import (
+    AnnotationMentionQualifier,
     AnnotationProvenance,
     AnnotationRecord,
     AnswerAlternative,
@@ -38,6 +39,7 @@ from semantic_action_extractor.evaluation.scorers import (
 from semantic_action_extractor.evaluation.types import (
     EvaluationArgument,
     EvaluationCorpus,
+    EvaluationMentionQualifier,
     EvaluationPredicate,
     EvaluationQAPair,
     EvaluationQuestion,
@@ -98,12 +100,14 @@ def _predicate(
     eventive: bool = True,
     predicate_type: str = "verbal",
     lemma: str = "approve",
+    mention_qualifiers: tuple[EvaluationMentionQualifier, ...] | None = None,
 ) -> EvaluationPredicate:
     return EvaluationPredicate(
         key=PredicateKey(source_id, token_start, token_start + 1, predicate_type),
         is_eventive=eventive,
         lemma=lemma,
         pairs=tuple(pairs),
+        mention_qualifiers=mention_qualifiers,
     )
 
 
@@ -187,6 +191,90 @@ class QuestionEquivalenceTests(unittest.TestCase):
 
 
 class ScorerTests(unittest.TestCase):
+    def test_qualifier_evidence_requires_character_offsets(self) -> None:
+        with self.assertRaisesRegex(ValueError, "requires character spans"):
+            EvaluationMentionQualifier(
+                kind="negated",
+                evidence=EvaluationArgument(token_spans=((2, 3),)),
+            )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "non-eventive predicate cannot contain mention qualifiers",
+        ):
+            _predicate(
+                "sentence",
+                3,
+                eventive=False,
+                mention_qualifiers=(),
+            )
+
+    def test_primary_scores_qualifier_label_and_evidence_separately(self) -> None:
+        gold_qualifier = EvaluationMentionQualifier(
+            kind="negated",
+            evidence=EvaluationArgument(
+                token_spans=((2, 3),),
+                character_spans=((9, 12),),
+            ),
+        )
+        predicted_qualifier = EvaluationMentionQualifier(
+            kind="negated",
+            evidence=EvaluationArgument(
+                token_spans=((1, 2),),
+                character_spans=((5, 8),),
+            ),
+        )
+        result = _score(
+            EvaluationCorpus(
+                (
+                    _predicate(
+                        "sentence",
+                        3,
+                        mention_qualifiers=(gold_qualifier,),
+                    ),
+                )
+            ),
+            EvaluationCorpus(
+                (
+                    _predicate(
+                        "sentence",
+                        3,
+                        mention_qualifiers=(predicted_qualifier,),
+                    ),
+                )
+            ),
+        )
+
+        self.assertEqual(result.mention_qualifier_labels.true_positive, 1)
+        self.assertEqual(result.mention_qualifier_exact_evidence.true_positive, 0)
+        self.assertEqual(result.mention_qualifier_exact_evidence.false_positive, 1)
+        self.assertEqual(result.mention_qualifier_exact_evidence.false_negative, 1)
+        self.assertEqual(result.shared_qualifier_annotated_predicates, 1)
+
+    def test_reference_modes_do_not_change_their_contract_for_qualifiers(self) -> None:
+        qualifier = EvaluationMentionQualifier(
+            kind="reported",
+            evidence=EvaluationArgument(
+                token_spans=((0, 1),),
+                character_spans=((0, 4),),
+            ),
+        )
+        corpus = EvaluationCorpus(
+            (
+                _predicate(
+                    "sentence",
+                    3,
+                    mention_qualifiers=(qualifier,),
+                ),
+            )
+        )
+
+        compatible = _score(corpus, corpus, mode=QASRL_GS_COMPATIBLE_V1)
+        qanom = _score(corpus, corpus, mode=QANOM_REFERENCE_V1)
+
+        self.assertIsNone(compatible.mention_qualifier_labels)
+        self.assertIsNone(qanom.mention_qualifier_exact_evidence)
+
     def test_primary_threshold_is_inclusive_at_one_half(self) -> None:
         key_args = (
             _pair("gold", (0, 4), character_span=(0, 8)),
@@ -471,6 +559,20 @@ class ConsolidationTests(unittest.TestCase):
                     past_participle="approved",
                 ),
                 questions=(question,),
+                mention_qualifiers=(
+                    AnnotationMentionQualifier(
+                        kind="reported",
+                        evidence=(
+                            token_aligned_span(
+                                text,
+                                tokens,
+                                0,
+                                1,
+                                label="qualifier",
+                            ),
+                        ),
+                    ),
+                ),
             )
         else:
             candidate = PredicateCandidate(
@@ -508,6 +610,9 @@ class ConsolidationTests(unittest.TestCase):
         self.assertEqual(len(result.corpus.predicates[0].pairs), 1)
         self.assertEqual(result.counts["duplicate_answer_alternatives"], 1)
         self.assertEqual(result.counts["qa_pairs"], 1)
+        qualifier = result.corpus.predicates[0].mention_qualifiers[0]
+        self.assertEqual(qualifier.kind, "reported")
+        self.assertEqual(qualifier.evidence.character_spans, ((0, 4),))
 
     def test_valid_empty_answer_is_counted_without_inventing_a_pair(self) -> None:
         result = consolidate_annotations(

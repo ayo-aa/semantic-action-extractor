@@ -28,11 +28,16 @@ This report tracks reproducible error categories rather than isolated anecdotes.
 - coordination or embedded clause;
 - implicit argument incorrectly invented or omitted.
 
-## Interpretation boundaries
+## Mention qualifiers and interpretation boundaries
 
-- negation not represented;
-- modality or hypothetical language not represented;
-- assignment or action-item status incorrectly inferred;
+- missed supported qualifier kind;
+- spurious qualifier kind without source support;
+- correct qualifier kind with missing, underextended, overextended, or otherwise incorrect evidence boundaries;
+- qualifier attached to the wrong predicate or given the wrong predicate scope;
+- an assessed empty qualifier set confused with an unassessed predicate;
+- co-occurring qualifier kinds incorrectly collapsed or made mutually exclusive;
+- real-world occurrence, truth, completion, assignment, commitment, ownership, due date, or execution improperly inferred from a mention qualifier;
+- assignment or action-item status otherwise incorrectly inferred;
 - coreference or cross-sentence identity failure;
 - ambiguous prepositional cue.
 
@@ -65,7 +70,9 @@ This report tracks reproducible error categories rather than isolated anecdotes.
 - malformed or incomplete generated QA set;
 - repeated or order-sensitive generated QA;
 - predicate or argument lost through truncation;
+- mention qualifier or qualifier evidence lost through truncation;
 - source-offset mismatch;
+- qualifier evidence that does not map exactly to the source;
 - invalid schema or duplicate serialized frame;
 - end-to-end failure caused by predicate detection rather than argument extraction.
 
@@ -78,4 +85,4 @@ This report tracks reproducible error categories rather than isolated anecdotes.
 - calibration drift between verbal and nominal predicates;
 - calibration drift on held-out predicate families or source domains.
 
-For each evaluation, record the count, denominator, representative redistributable examples, affected model and configuration, likely cause, and planned response. Attribute candidate-generation, predicate-classification, argument-span, question-slot, and serialization errors to separate stages; report gold-predicate and complete-pipeline failures separately.
+For each evaluation, record the count, denominator, representative redistributable examples, affected model and configuration, likely cause, and planned response. Attribute candidate-generation, predicate-classification, mention-qualifier kind, qualifier-evidence, argument-span, question-slot, and serialization errors to separate stages; report gold-predicate and complete-pipeline failures separately. Keep linguistic qualifier errors separate from unsupported claims about real-world event status.

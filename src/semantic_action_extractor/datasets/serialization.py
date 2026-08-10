@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ..annotation_schema import (
+    AnnotationMentionQualifier,
     AnnotationProvenance,
     AnnotationRecord,
     AnnotationToken,
@@ -463,6 +464,7 @@ def _candidate(raw: object, *, label: str) -> PredicateCandidate:
             "verb_inflected_forms",
             "eventivity_judgments",
             "questions",
+            "mention_qualifiers",
             "metadata",
         },
         label=label,
@@ -498,7 +500,41 @@ def _candidate(raw: object, *, label: str) -> PredicateCandidate:
                 _list(payload["questions"], label=f"{label}.questions")
             )
         ),
+        mention_qualifiers=(
+            None
+            if payload["mention_qualifiers"] is None
+            else tuple(
+                _mention_qualifier(
+                    item,
+                    label=f"{label}.mention_qualifiers[{index}]",
+                )
+                for index, item in enumerate(
+                    _list(
+                        payload["mention_qualifiers"],
+                        label=f"{label}.mention_qualifiers",
+                    )
+                )
+            )
+        ),
         metadata=_metadata(payload["metadata"], label=f"{label}.metadata"),
+    )
+
+
+def _mention_qualifier(
+    raw: object,
+    *,
+    label: str,
+) -> AnnotationMentionQualifier:
+    payload = _object(raw, label=label)
+    _keys(payload, required={"kind", "evidence"}, label=label)
+    return AnnotationMentionQualifier(
+        kind=_string(payload["kind"], label=f"{label}.kind"),
+        evidence=tuple(
+            _aligned_span(item, label=f"{label}.evidence[{index}]")
+            for index, item in enumerate(
+                _list(payload["evidence"], label=f"{label}.evidence")
+            )
+        ),
     )
 
 

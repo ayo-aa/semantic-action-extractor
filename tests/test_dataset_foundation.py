@@ -263,7 +263,7 @@ class ManifestTests(unittest.TestCase):
             payload = json.loads(path.read_text(encoding="utf-8"))
 
         self.assertEqual(payload["counts"]["records"], 1)
-        self.assertEqual(payload["schema_version"], "0.2.0")
+        self.assertEqual(payload["schema_version"], "0.3.0")
 
 
 class LeakageTests(unittest.TestCase):

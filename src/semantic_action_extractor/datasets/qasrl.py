@@ -40,7 +40,7 @@ from .common import (
 
 QASRL_BANK_RELEASE = "2.1"
 QASRL_GOLD_RELEASE = "f7c64ae9b6fe48ff3910c3e59850a12ec278bf83"
-QASRL_ADAPTER_VERSION = "0.1.0"
+QASRL_ADAPTER_VERSION = "0.2.0"
 
 
 _RECORD_KEYS = frozenset({"sentenceId", "sentenceTokens", "verbEntries"})

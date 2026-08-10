@@ -9,7 +9,13 @@ import re
 import tomllib
 from typing import Any, Iterable
 
-from .schema import ActionArgument, ActionFrame, ExtractionResult, TextSpan
+from .schema import (
+    ActionArgument,
+    ActionFrame,
+    ExtractionResult,
+    MentionQualifier,
+    TextSpan,
+)
 
 
 _SENTENCE_RE = re.compile(r"[^.!?]+(?:[.!?]+|$)", re.MULTILINE)
@@ -151,8 +157,68 @@ _PREPOSITIONS = frozenset(
 )
 _CLAUSE_PUNCTUATION = frozenset({",", ";", ":", ".", "!", "?"})
 _HARD_CLAUSE_BOUNDARIES = frozenset({";", ":", ".", "!", "?"})
+_LOCAL_QUALIFIER_RESETS = _HARD_CLAUSE_BOUNDARIES | frozenset(
+    {",", "but", "then"}
+)
 _TRAILING_PUNCTUATION = frozenset({",", ";", ":", ".", "!", "?", ")", "]", "}"})
 _LEADING_PUNCTUATION = frozenset({",", ";", ":", "(", "[", "{"})
+
+_QUALIFIER_KIND_ORDER = (
+    "negated",
+    "possible",
+    "necessary",
+    "planned",
+    "future",
+    "hypothetical",
+    "conditional",
+    "questioned",
+    "reported",
+)
+_PREFIX_QUALIFIER_CUES = {
+    "negated": frozenset({"cannot", "never", "no", "not", "without"}),
+    "possible": frozenset({"could", "maybe", "may", "might", "perhaps", "possibly"}),
+    "necessary": frozenset({"must", "need", "needed", "needs", "required", "should"}),
+    "planned": frozenset(
+        {
+            "intend",
+            "intended",
+            "intends",
+            "plan",
+            "planned",
+            "planning",
+            "plans",
+            "scheduled",
+        }
+    ),
+    "future": frozenset({"shall", "will"}),
+    "hypothetical": frozenset({"hypothetically", "suppose", "supposing", "would"}),
+    "reported": frozenset(
+        {
+            "according",
+            "claimed",
+            "claims",
+            "reported",
+            "reportedly",
+            "reports",
+            "said",
+            "says",
+            "stated",
+            "states",
+        }
+    ),
+}
+_CONDITIONAL_CUES = frozenset({"if", "unless"})
+_QUESTION_CUES = frozenset({"whether"})
+_CONTRACTED_QUALIFIERS = {
+    "can't": ("negated", "possible"),
+    "couldn't": ("negated", "possible"),
+    "mightn't": ("negated", "possible"),
+    "mustn't": ("negated", "necessary"),
+    "shan't": ("negated", "future"),
+    "shouldn't": ("negated", "necessary"),
+    "won't": ("negated", "future"),
+    "wouldn't": ("negated", "hypothetical"),
+}
 
 
 @dataclass(frozen=True, slots=True)
@@ -265,13 +331,6 @@ class RuleBasedExtractor:
             sentence_actions = self._extract_sentence(text, tokens, sentence_index)
             actions.extend(sentence_actions)
 
-            lowered = {token.lower for token in tokens}
-            if sentence_actions and lowered & {"never", "no", "not", "without"}:
-                warnings.append(
-                    f"Sentence {sentence_index} contains possible negation; "
-                    "rule-based-v1 does not encode action polarity."
-                )
-
         if text.strip() and not actions:
             warnings.append("No action predicates matched the rule-based vocabulary.")
 
@@ -349,6 +408,12 @@ class RuleBasedExtractor:
                     predicate_lemma=lemma,
                     predicate_type="verbal",
                     arguments=tuple(arguments),
+                    mention_qualifiers=_mention_qualifiers(
+                        text,
+                        tokens,
+                        verb_index,
+                        tail_end,
+                    ),
                     sentence_index=sentence_index,
                     score=score,
                     score_type="heuristic_completeness",
@@ -481,6 +546,95 @@ class RuleBasedExtractor:
 
 def _normalise_verb(value: str) -> str:
     return value.strip().casefold()
+
+
+def _mention_qualifiers(
+    text: str,
+    tokens: list[_Token],
+    predicate_index: int,
+    predicate_tail_end: int,
+) -> tuple[MentionQualifier, ...]:
+    """Attach conservative lexical cues without claiming real-world event status."""
+
+    clause_start = 0
+    for index, token in enumerate(tokens[:predicate_index]):
+        if token.text in _HARD_CLAUSE_BOUNDARIES:
+            clause_start = index + 1
+
+    prefix_start = clause_start
+    for index, token in enumerate(
+        tokens[clause_start:predicate_index],
+        start=clause_start,
+    ):
+        if (
+            token.text in _LOCAL_QUALIFIER_RESETS
+            or token.lower in _LOCAL_QUALIFIER_RESETS
+        ):
+            prefix_start = index + 1
+
+    prefix = tokens[prefix_start:predicate_index]
+    clause_end = len(tokens)
+    for index in range(predicate_index + 1, len(tokens)):
+        if tokens[index].text in _HARD_CLAUSE_BOUNDARIES - {"?"}:
+            clause_end = index
+            break
+    clause = tokens[clause_start:clause_end]
+
+    evidence_by_kind: dict[str, list[_Token]] = {
+        kind: [] for kind in _QUALIFIER_KIND_ORDER
+    }
+    for token in prefix:
+        normalized = token.lower.replace("’", "'")
+        contracted = _CONTRACTED_QUALIFIERS.get(normalized, ())
+        if normalized.endswith("n't") and not contracted:
+            contracted = ("negated",)
+        for kind in contracted:
+            evidence_by_kind[kind].append(token)
+        for kind, cues in _PREFIX_QUALIFIER_CUES.items():
+            if normalized in cues:
+                evidence_by_kind[kind].append(token)
+
+    for token in tokens[predicate_index + 1 : predicate_tail_end]:
+        if token.lower == "no":
+            evidence_by_kind["negated"].append(token)
+
+    for token in clause:
+        if token.lower in _CONDITIONAL_CUES:
+            evidence_by_kind["conditional"].append(token)
+        if token.lower in _QUESTION_CUES or token.text == "?":
+            evidence_by_kind["questioned"].append(token)
+
+    qualifiers = []
+    for kind in _QUALIFIER_KIND_ORDER:
+        evidence_tokens = _unique_tokens(evidence_by_kind[kind])
+        if not evidence_tokens:
+            continue
+        qualifiers.append(
+            MentionQualifier(
+                kind=kind,
+                evidence=tuple(
+                    TextSpan(
+                        text=text[token.start : token.end],
+                        start=token.start,
+                        end=token.end,
+                    )
+                    for token in evidence_tokens
+                ),
+            )
+        )
+    return tuple(qualifiers)
+
+
+def _unique_tokens(tokens: list[_Token]) -> list[_Token]:
+    seen: set[tuple[int, int]] = set()
+    unique = []
+    for token in sorted(tokens, key=lambda item: (item.start, item.end)):
+        key = (token.start, token.end)
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(token)
+    return unique
 
 
 def _verb_lemma(word: str, verbs: Iterable[str]) -> str | None:

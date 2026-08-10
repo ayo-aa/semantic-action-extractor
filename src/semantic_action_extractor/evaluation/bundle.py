@@ -13,6 +13,7 @@ from ..datasets.common import DatasetFormatError
 from .types import (
     EvaluationArgument,
     EvaluationCorpus,
+    EvaluationMentionQualifier,
     EvaluationPredicate,
     EvaluationQAPair,
     EvaluationQuestion,
@@ -20,7 +21,8 @@ from .types import (
 )
 
 
-EVALUATION_BUNDLE_VERSION = "1.0.0"
+EVALUATION_BUNDLE_VERSION = "1.1.0"
+_LEGACY_EVALUATION_BUNDLE_VERSION = "1.0.0"
 
 
 @dataclass(frozen=True, slots=True)
@@ -99,16 +101,33 @@ def load_evaluation_bundle(path: str | Path) -> EvaluationBundle:
             },
             label="evaluation bundle",
         )
+        bundle_version = _string(
+            payload["bundle_version"],
+            label="bundle_version",
+        )
+        if bundle_version not in {
+            _LEGACY_EVALUATION_BUNDLE_VERSION,
+            EVALUATION_BUNDLE_VERSION,
+        }:
+            raise DatasetFormatError(
+                "evaluation bundle_version must be "
+                f"{_LEGACY_EVALUATION_BUNDLE_VERSION} or "
+                f"{EVALUATION_BUNDLE_VERSION}"
+            )
         corpus_payload = _object(payload["corpus"], label="evaluation corpus")
         _keys(corpus_payload, {"predicates"}, label="evaluation corpus")
         predicates = tuple(
-            _predicate(item, label=f"predicates[{index}]")
+            _predicate(
+                item,
+                label=f"predicates[{index}]",
+                bundle_version=bundle_version,
+            )
             for index, item in enumerate(
                 _list(corpus_payload["predicates"], label="predicates")
             )
         )
         return EvaluationBundle(
-            bundle_version=_string(payload["bundle_version"], label="bundle_version"),
+            bundle_version=EVALUATION_BUNDLE_VERSION,
             predicate_source=_string(
                 payload["predicate_source"], label="predicate_source"
             ),
@@ -124,9 +143,21 @@ def load_evaluation_bundle(path: str | Path) -> EvaluationBundle:
         raise DatasetFormatError(f"invalid evaluation bundle {source}: {error}") from error
 
 
-def _predicate(raw: object, *, label: str) -> EvaluationPredicate:
+def _predicate(
+    raw: object,
+    *,
+    label: str,
+    bundle_version: str,
+) -> EvaluationPredicate:
     payload = _object(raw, label=label)
-    _keys(payload, {"key", "is_eventive", "lemma", "pairs"}, label=label)
+    required = {"key", "is_eventive", "lemma", "pairs"}
+    if bundle_version == EVALUATION_BUNDLE_VERSION:
+        required.add("mention_qualifiers")
+    _keys(
+        payload,
+        required,
+        label=label,
+    )
     key_payload = _object(payload["key"], label=f"{label}.key")
     _keys(
         key_payload,
@@ -154,6 +185,56 @@ def _predicate(raw: object, *, label: str) -> EvaluationPredicate:
         pairs=tuple(
             _pair(item, label=f"{label}.pairs[{index}]")
             for index, item in enumerate(_list(payload["pairs"], label=f"{label}.pairs"))
+        ),
+        mention_qualifiers=(
+            None
+            if bundle_version == _LEGACY_EVALUATION_BUNDLE_VERSION
+            or payload["mention_qualifiers"] is None
+            else tuple(
+                _mention_qualifier(
+                    item,
+                    label=f"{label}.mention_qualifiers[{index}]",
+                )
+                for index, item in enumerate(
+                    _list(
+                        payload["mention_qualifiers"],
+                        label=f"{label}.mention_qualifiers",
+                    )
+                )
+            )
+        ),
+    )
+
+
+def _mention_qualifier(
+    raw: object,
+    *,
+    label: str,
+) -> EvaluationMentionQualifier:
+    payload = _object(raw, label=label)
+    _keys(payload, {"kind", "evidence"}, label=label)
+    evidence = _object(payload["evidence"], label=f"{label}.evidence")
+    _keys(
+        evidence,
+        {"token_spans", "character_spans"},
+        label=f"{label}.evidence",
+    )
+    raw_character_spans = evidence["character_spans"]
+    return EvaluationMentionQualifier(
+        kind=_string(payload["kind"], label=f"{label}.kind"),
+        evidence=EvaluationArgument(
+            token_spans=_ranges(
+                evidence["token_spans"],
+                label=f"{label}.evidence.token_spans",
+            ),
+            character_spans=(
+                None
+                if raw_character_spans is None
+                else _ranges(
+                    raw_character_spans,
+                    label=f"{label}.evidence.character_spans",
+                )
+            ),
         ),
     )
 

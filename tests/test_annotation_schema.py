@@ -3,6 +3,7 @@ import unittest
 
 from semantic_action_extractor.annotation_schema import (
     ANNOTATION_SCHEMA_VERSION,
+    AnnotationMentionQualifier,
     AnnotationProvenance,
     AnnotationRecord,
     AnnotationToken,
@@ -16,6 +17,7 @@ from semantic_action_extractor.annotation_schema import (
     VerbInflectionParadigm,
 )
 from semantic_action_extractor.schema import TextSpan
+from semantic_action_extractor.datasets.serialization import annotation_record_from_dict
 
 
 def _token(index: int, text: str, start: int, end: int) -> AnnotationToken:
@@ -226,6 +228,39 @@ class AnnotationSchemaTests(unittest.TestCase):
 
         self.assertFalse(candidate["eventivity_judgments"][0]["is_eventive"])
         self.assertEqual(candidate["questions"], [])
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "non-eventive candidate cannot contain mention qualifiers",
+        ):
+            PredicateCandidate(
+                candidate_id="qualified-non-event",
+                span=_aligned("approval", 4, 12, 1, 2),
+                lemma="approval",
+                predicate_type="nominal",
+                related_verbal_form="approve",
+                eventivity_judgments=negative.eventivity_judgments,
+                mention_qualifiers=(
+                    AnnotationMentionQualifier(
+                        kind="negated",
+                        evidence=(_aligned("approval", 4, 12, 1, 2),),
+                    ),
+                ),
+            )
+
+        with self.assertRaisesRegex(
+            ValueError,
+            "non-eventive candidate cannot contain mention qualifiers",
+        ):
+            PredicateCandidate(
+                candidate_id="assessed-non-event",
+                span=_aligned("approval", 4, 12, 1, 2),
+                lemma="approval",
+                predicate_type="nominal",
+                related_verbal_form="approve",
+                eventivity_judgments=negative.eventivity_judgments,
+                mention_qualifiers=(),
+            )
         self.assertEqual(record.to_dict()["candidates"][1]["predicate_type"], "verbal")
 
     def test_preserves_upstream_eventivity_question_conflict(self) -> None:
@@ -621,6 +656,78 @@ class AnnotationSchemaTests(unittest.TestCase):
                 text=self.text,
                 tokens=invalid_tokens,
                 provenance=self.provenance,
+            )
+
+    def test_preserves_source_grounded_mention_qualifiers(self) -> None:
+        text = "Maya did not approve refunds."
+        tokens = (
+            _token(0, "Maya", 0, 4),
+            _token(1, "did", 5, 8),
+            _token(2, "not", 9, 12),
+            _token(3, "approve", 13, 20),
+            _token(4, "refunds", 21, 28),
+            _token(5, ".", 28, 29),
+        )
+        candidate = PredicateCandidate(
+            candidate_id="approve",
+            span=_aligned("approve", 13, 20, 3, 4),
+            lemma="approve",
+            predicate_type="verbal",
+            verb_inflected_forms=VerbInflectionParadigm(
+                stem="approve",
+                present_singular_3rd="approves",
+                present_participle="approving",
+                past="approved",
+                past_participle="approved",
+            ),
+            mention_qualifiers=(
+                AnnotationMentionQualifier(
+                    kind="negated",
+                    evidence=(_aligned("not", 9, 12, 2, 3),),
+                ),
+            ),
+        )
+
+        record = AnnotationRecord(
+            text=text,
+            tokens=tokens,
+            provenance=self.provenance,
+            candidates=(candidate,),
+        )
+
+        payload = record.to_dict()["candidates"][0]["mention_qualifiers"]
+        self.assertEqual(payload[0]["kind"], "negated")
+        self.assertEqual(payload[0]["evidence"][0]["text"], "not")
+        self.assertEqual(
+            annotation_record_from_dict(record.to_dict()).to_dict(),
+            record.to_dict(),
+        )
+
+        bad_candidate = PredicateCandidate(
+            candidate_id="bad-approve",
+            span=_aligned("approve", 13, 20, 3, 4),
+            lemma="approve",
+            predicate_type="verbal",
+            verb_inflected_forms=VerbInflectionParadigm(
+                stem="approve",
+                present_singular_3rd="approves",
+                present_participle="approving",
+                past="approved",
+                past_participle="approved",
+            ),
+            mention_qualifiers=(
+                AnnotationMentionQualifier(
+                    kind="negated",
+                    evidence=(_aligned("never", 9, 14, 2, 3),),
+                ),
+            ),
+        )
+        with self.assertRaisesRegex(ValueError, "does not match"):
+            AnnotationRecord(
+                text=text,
+                tokens=tokens,
+                provenance=self.provenance,
+                candidates=(bad_candidate,),
             )
 
 

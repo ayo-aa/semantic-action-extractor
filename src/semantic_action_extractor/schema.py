@@ -12,9 +12,22 @@ import math
 from typing import Any, Iterable
 
 
-SCHEMA_VERSION = "0.2.0"
+SCHEMA_VERSION = "0.3.0"
 PREDICATE_TYPES = frozenset({"verbal", "nominal"})
 ROLE_SCHEMES = frozenset({"surface", "qa_srl", "coarse"})
+MENTION_QUALIFIER_KINDS = frozenset(
+    {
+        "conditional",
+        "future",
+        "hypothetical",
+        "necessary",
+        "negated",
+        "planned",
+        "possible",
+        "questioned",
+        "reported",
+    }
+)
 
 
 @dataclass(frozen=True, slots=True)
@@ -35,6 +48,44 @@ class TextSpan:
 
     def to_dict(self) -> dict[str, Any]:
         return {"text": self.text, "start": self.start, "end": self.end}
+
+
+@dataclass(frozen=True, slots=True)
+class MentionQualifier:
+    """Source wording that qualifies an event mention without asserting its status.
+
+    Qualifiers describe how the source presents a mention.  They do not establish
+    whether an event occurred, was completed, was assigned, or should be executed.
+    """
+
+    kind: str
+    evidence: tuple[TextSpan, ...]
+
+    def __post_init__(self) -> None:
+        if self.kind not in MENTION_QUALIFIER_KINDS:
+            choices = ", ".join(sorted(MENTION_QUALIFIER_KINDS))
+            raise ValueError(f"mention qualifier kind must be one of: {choices}")
+        if not isinstance(self.evidence, tuple) or not self.evidence:
+            raise ValueError(
+                "mention qualifier evidence must be a non-empty tuple of spans"
+            )
+        previous_end = -1
+        for span in self.evidence:
+            if not isinstance(span, TextSpan):
+                raise TypeError(
+                    "mention qualifier evidence must contain only TextSpan values"
+                )
+            if span.start < previous_end:
+                raise ValueError(
+                    "mention qualifier evidence must be ordered and non-overlapping"
+                )
+            previous_end = span.end
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "kind": self.kind,
+            "evidence": [span.to_dict() for span in self.evidence],
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -95,6 +146,7 @@ class ActionFrame:
     related_verbal_form: str | None = None
     predicate_confidence: float | None = None
     predicate_confidence_type: str | None = None
+    mention_qualifiers: tuple[MentionQualifier, ...] | None = None
 
     def __post_init__(self) -> None:
         if not self.predicate_lemma:
@@ -125,6 +177,23 @@ class ActionFrame:
             self.predicate_confidence_type,
             label="predicate confidence",
         )
+        if self.mention_qualifiers is not None:
+            if not isinstance(self.mention_qualifiers, tuple):
+                raise TypeError(
+                    "mention_qualifiers must be a tuple or None when not assessed"
+                )
+            if any(
+                not isinstance(qualifier, MentionQualifier)
+                for qualifier in self.mention_qualifiers
+            ):
+                raise TypeError(
+                    "mention_qualifiers must contain only MentionQualifier values"
+                )
+            kinds = [qualifier.kind for qualifier in self.mention_qualifiers]
+            if len(kinds) != len(set(kinds)):
+                raise ValueError(
+                    "mention qualifier kinds must be unique within an action frame"
+                )
         grouped_roles: dict[str, tuple[str, str]] = {}
         for argument in self.arguments:
             if argument.group_id is None:
@@ -142,6 +211,11 @@ class ActionFrame:
             "predicate_lemma": self.predicate_lemma,
             "predicate_type": self.predicate_type,
             "arguments": [argument.to_dict() for argument in self.arguments],
+            "mention_qualifiers": (
+                None
+                if self.mention_qualifiers is None
+                else [qualifier.to_dict() for qualifier in self.mention_qualifiers]
+            ),
             "sentence_index": self.sentence_index,
             "score": self.score,
             "score_type": self.score_type,
@@ -193,6 +267,9 @@ def _action_spans(action: ActionFrame) -> Iterable[TextSpan]:
         yield argument.span
         if argument.cue is not None:
             yield argument.cue
+    if action.mention_qualifiers is not None:
+        for qualifier in action.mention_qualifiers:
+            yield from qualifier.evidence
 
 
 def _validate_optional_confidence(

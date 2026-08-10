@@ -11,6 +11,7 @@ from ..datasets.common import DatasetFormatError
 from .types import (
     EvaluationArgument,
     EvaluationCorpus,
+    EvaluationMentionQualifier,
     EvaluationPredicate,
     EvaluationQAPair,
     EvaluationQuestion,
@@ -94,6 +95,26 @@ def consolidate_annotations(
                     is_eventive=eventive,
                     lemma=candidate.lemma,
                     pairs=tuple(pairs),
+                    mention_qualifiers=(
+                        None
+                        if candidate.mention_qualifiers is None
+                        else tuple(
+                            EvaluationMentionQualifier(
+                                kind=qualifier.kind,
+                                evidence=EvaluationArgument(
+                                    token_spans=tuple(
+                                        (span.token_start, span.token_end)
+                                        for span in qualifier.evidence
+                                    ),
+                                    character_spans=tuple(
+                                        (span.span.start, span.span.end)
+                                        for span in qualifier.evidence
+                                    ),
+                                ),
+                            )
+                            for qualifier in candidate.mention_qualifiers
+                        )
+                    ),
                 )
             )
     counts["qa_pairs"] = sum(len(predicate.pairs) for predicate in predicates)

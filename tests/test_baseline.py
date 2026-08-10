@@ -11,13 +11,14 @@ class BaselineTests(unittest.TestCase):
 
         result = RuleBasedExtractor().extract(text)
 
-        self.assertEqual(result.schema_version, "0.2.0")
+        self.assertEqual(result.schema_version, "0.3.0")
         self.assertEqual(len(result.actions), 1)
         action = result.actions[0]
         self.assertEqual(action.predicate.text, "emailed")
         self.assertEqual(action.predicate_lemma, "email")
         self.assertEqual(action.predicate_type, "verbal")
         self.assertEqual(action.score_type, "heuristic_completeness")
+        self.assertEqual(action.mention_qualifiers, ())
         self.assertEqual(
             [(item.role, item.span.text) for item in action.arguments],
             [
@@ -76,10 +77,88 @@ class BaselineTests(unittest.TestCase):
         self.assertEqual(result.actions, ())
         self.assertIn("No action predicates", result.warnings[0])
 
-    def test_warns_without_inventing_negation_status(self) -> None:
+    def test_attaches_local_negation_as_source_wording(self) -> None:
         result = RuleBasedExtractor().extract("Maya did not approve the refund.")
 
-        self.assertIn("does not encode action polarity", result.warnings[0])
+        qualifier = result.actions[0].mention_qualifiers[0]
+        self.assertEqual(qualifier.kind, "negated")
+        self.assertEqual(
+            [(span.text, span.start, span.end) for span in qualifier.evidence],
+            [("not", 9, 12)],
+        )
+        self.assertNotIn(
+            "does not encode action polarity",
+            " ".join(result.warnings),
+        )
+
+    def test_keeps_combined_qualifier_cues_separate(self) -> None:
+        text = "The agent reported that Maya might not approve the refund."
+
+        action = RuleBasedExtractor().extract(text).actions[0]
+
+        self.assertEqual(
+            [qualifier.kind for qualifier in action.mention_qualifiers],
+            ["negated", "possible", "reported"],
+        )
+        self.assertEqual(
+            {
+                qualifier.kind: [span.text for span in qualifier.evidence]
+                for qualifier in action.mention_qualifiers
+            },
+            {
+                "negated": ["not"],
+                "possible": ["might"],
+                "reported": ["reported"],
+            },
+        )
+
+    def test_does_not_leak_negation_across_contrastive_coordination(self) -> None:
+        result = RuleBasedExtractor().extract(
+            "Maya did not approve the refund but emailed Lee."
+        )
+
+        by_lemma = {action.predicate_lemma: action for action in result.actions}
+        self.assertEqual(
+            [item.kind for item in by_lemma["approve"].mention_qualifiers],
+            ["negated"],
+        )
+        self.assertEqual(by_lemma["email"].mention_qualifiers, ())
+
+    def test_detects_grounded_pre_and_postpredicate_negation_cues(self) -> None:
+        prefix = RuleBasedExtractor().extract(
+            "Without approving the refund, Maya emailed Lee."
+        )
+        postfix = RuleBasedExtractor().extract("Maya approved no refunds.")
+
+        self.assertEqual(
+            prefix.actions[0].mention_qualifiers[0].evidence[0].text,
+            "Without",
+        )
+        self.assertEqual(
+            postfix.actions[0].mention_qualifiers[0].evidence[0].text,
+            "no",
+        )
+
+    def test_marks_conditional_questions_without_claiming_occurrence(self) -> None:
+        text = "If Maya may approve the refund?"
+
+        action = RuleBasedExtractor().extract(text).actions[0]
+
+        self.assertEqual(
+            [qualifier.kind for qualifier in action.mention_qualifiers],
+            ["possible", "conditional", "questioned"],
+        )
+        self.assertEqual(
+            {
+                qualifier.kind: [span.text for span in qualifier.evidence]
+                for qualifier in action.mention_qualifiers
+            },
+            {
+                "possible": ["may"],
+                "conditional": ["If"],
+                "questioned": ["?"],
+            },
+        )
 
     def test_loads_domain_verb_from_toml(self) -> None:
         with tempfile.TemporaryDirectory() as directory:

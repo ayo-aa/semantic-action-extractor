@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 from semantic_action_extractor.evaluation.bundle import (
+    EVALUATION_BUNDLE_VERSION,
     EvaluationBundle,
     load_evaluation_bundle,
 )
@@ -13,6 +14,7 @@ from semantic_action_extractor.evaluation.scorers import PRIMARY_END_TO_END_V1
 from semantic_action_extractor.evaluation.types import (
     EvaluationArgument,
     EvaluationCorpus,
+    EvaluationMentionQualifier,
     EvaluationPredicate,
     EvaluationQAPair,
     EvaluationQuestion,
@@ -48,6 +50,15 @@ def _bundle(*, predicate_source: str) -> EvaluationBundle:
         is_eventive=True,
         lemma="approve",
         pairs=(pair,),
+        mention_qualifiers=(
+            EvaluationMentionQualifier(
+                kind="reported",
+                evidence=EvaluationArgument(
+                    token_spans=((2, 3),),
+                    character_spans=((5, 13),),
+                ),
+            ),
+        ),
     )
     return EvaluationBundle(
         corpus=EvaluationCorpus((predicate,)),
@@ -58,6 +69,19 @@ def _bundle(*, predicate_source: str) -> EvaluationBundle:
 
 
 class EvaluationCliTests(unittest.TestCase):
+    def test_loads_legacy_bundle_as_unassessed_for_qualifiers(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "legacy.json"
+            payload = _bundle(predicate_source="legacy-model").to_dict()
+            payload["bundle_version"] = "1.0.0"
+            payload["corpus"]["predicates"][0].pop("mention_qualifiers")
+            path.write_text(json.dumps(payload), encoding="utf-8")
+
+            loaded = load_evaluation_bundle(path)
+
+            self.assertEqual(loaded.bundle_version, EVALUATION_BUNDLE_VERSION)
+            self.assertIsNone(loaded.corpus.predicates[0].mention_qualifiers)
+
     def test_bundle_round_trip_and_cli_score(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -86,6 +110,10 @@ class EvaluationCliTests(unittest.TestCase):
             report = json.loads(output_path.read_text(encoding="utf-8"))
             self.assertEqual(status, 0)
             self.assertEqual(report["result"]["labeled_arguments"]["f1"], 1.0)
+            self.assertEqual(
+                report["result"]["mention_qualifier_exact_evidence"]["f1"],
+                1.0,
+            )
             self.assertEqual(
                 report["result"]["settings"]["predicate_source"],
                 "fixture-model",

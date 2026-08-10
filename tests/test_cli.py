@@ -15,7 +15,7 @@ class CliTests(unittest.TestCase):
 
         payload = json.loads(output.getvalue())
         self.assertEqual(exit_code, 0)
-        self.assertEqual(payload["schema_version"], "0.2.0")
+        self.assertEqual(payload["schema_version"], "0.3.0")
         self.assertEqual(payload["actions"][0]["predicate_lemma"], "send")
         self.assertEqual(payload["actions"][0]["arguments"][2]["span"]["text"], "Kai")
 

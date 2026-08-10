@@ -4,13 +4,13 @@ A research system for source-grounded event and information extraction across ve
 
 ## TL;DR
 
-Semantic Action Extractor is designed to turn unstructured English into structured, evidence-linked event records: the event mention, connected participants or circumstances, exact supporting spans, and confidence. QA-SRL questions are the project’s internal role representation and evaluation target, not a user-facing question-answering interface.
+Semantic Action Extractor is designed to turn unstructured English into structured, evidence-linked event records: the event mention, connected participants or circumstances, exact supporting spans, source-grounded mention qualifiers, and confidence. QA-SRL questions are the project’s internal role representation and evaluation target, not a user-facing question-answering interface.
 
 - The implemented foundation includes the dependency-free rule baseline, pinned archive tools, strict QA-SRL and QANom adapters, deterministic manifests, split-leakage controls, reusable evaluation bundles, and three versioned scorer contracts.
 - Every selected QA-SRL and QANom release file has been processed successfully, and the adapters reproduce the release-computed counts documented in this repository.
 - A cross-task split check found copied evaluation sentences under different upstream IDs; the fixed training policy quarantines 120 of 44,477 QA-SRL sentences and 28 of 7,114 QANom sentences at the document level.
 - QA-SRL and QANom provide training and evaluation supervision across actions expressed as verbs (`approved`) and event-expressing nouns (`approval`); they are not presented as the product interface.
-- The main model will select participant and circumstance spans directly from the input, predict the seven constrained parts of each QA-SRL role label, and support a separately evaluated projection into simpler product-facing fields.
+- The main model will select participant, circumstance, and qualifier-cue spans directly from the input, predict the seven constrained parts of each QA-SRL role label, and support a separately evaluated projection into simpler product-facing fields.
 - The research comparison is a structured BERT-family encoder versus a reproduced T5-small QASem generator under matched data and compute.
 - No neural checkpoint or corpus-level result is claimed yet.
 
@@ -49,6 +49,7 @@ An abridged research-facing target record is:
   "predicate_lemma": "approval",
   "related_verbal_form": "approve",
   "predicate_type": "nominal",
+  "mention_qualifiers": [],
   "arguments": [
     {
       "role": "who approved something?",
@@ -66,7 +67,7 @@ An abridged research-facing target record is:
 
 The role question preserves what the annotation supports instead of forcing every span into `actor` or `patient`. In `Jordan received the invoice`, Jordan is a recipient even though Jordan appears before the predicate. In `The contract was approved by Maya`, Maya is the approver even though Maya appears after it. A separately evaluated product-facing adapter may project these richer labels into fields such as `who`, `what`, `when`, and `where`; that lossy mapping is not treated as equivalent to the research annotation.
 
-The term *action* here means a linguistic action or event mention. The system does not determine whether something is an assignment, commitment, action item, completed task, or instruction to execute.
+The term *action* here means a linguistic action or event mention. The system does not determine whether something is an assignment, commitment, action item, completed task, or instruction to execute. A mention can carry exact cue-backed qualifiers such as `negated`, `possible`, `planned`, or `reported`; those labels describe how the source presents the mention and never establish that it occurred.
 
 ## Prior research and our contribution
 
@@ -82,7 +83,7 @@ The planned contribution is:
 2. **By-construction evidence grounding:** Select evidence from source positions and measure malformed or ungrounded generations from the comparison model.
 3. **Predicate-conditioning study:** Compare no signal, BERT token types, boundary markers, and learned predicate features.
 4. **Controlled transfer:** Measure naturally unseen and deliberately held-out predicate families, source-domain shift, and operational-style language.
-5. **Complete-pipeline accounting:** Separate candidate generation, predicate classification, supplied-predicate extraction, and raw-text end-to-end results.
+5. **Complete-pipeline accounting:** Separate candidate generation, predicate classification, mention qualification, supplied-predicate extraction, and raw-text end-to-end results.
 6. **Engineering evidence:** Report calibration, latency, throughput, memory, checkpoint size, and exact reproducibility metadata.
 
 ## Research question
@@ -100,26 +101,32 @@ flowchart TB
     C --> D["Predicate-conditioned encoder"]
     D --> E["Participant and circumstance spans"]
     D --> F["Semantic relation representation"]
+    D --> J["Mention qualifier kinds and cue spans"]
     Q["QA-SRL and QANom supervision"] -.-> E
     Q -.-> F
+    R["Operational-style qualifier annotation"] -.-> J
     E --> G["Source-grounded event records"]
     F --> G
-    G --> H["Exact evidence offsets and confidence"]
+    J --> G
+    G --> H["Exact evidence offsets, mention qualifiers, and confidence"]
     G --> I["Optional evaluated product-role adapter"]
 ```
 
-QA-SRL and QANom enter through the dashed training and evaluation path. At inference, the system receives raw text rather than a user-supplied question. This raw-text system contains three separately measured decisions. Candidate generation proposes possible verbs and nouns. Predicate classification determines which candidates express in-scope events; for QANom nouns, this includes deciding whether the noun is **eventive**, meaning that it actually describes an event in that sentence. Argument extraction then analyzes one positive predicate at a time. Supplying the correct predicate is useful for component diagnosis but cannot stand in for the complete-pipeline result.
+QA-SRL and QANom enter through the dashed training and evaluation path. At inference, the system receives raw text rather than a user-supplied question. This raw-text system contains four separately measured decisions. Candidate generation proposes possible verbs and nouns. Predicate classification determines which candidates express in-scope events; for QANom nouns, this includes deciding whether the noun is **eventive**, meaning that it actually describes an event in that sentence. Mention qualification identifies supported linguistic framing and its exact cues without inferring occurrence or workflow status. Argument extraction then analyzes one positive predicate at a time. Supplying the correct predicate is useful for component diagnosis but cannot stand in for the complete-pipeline result.
 
-The structured neural parser uses one contextual encoder with two learned outputs. The span head finds answer boundaries in the source. The question head predicts the seven constrained QA-SRL slots—such as the question word, auxiliary, subject placeholder, verb form, object placeholders, and preposition—and code deterministically realizes the final question. Several spans can remain grouped under the same role question through an explicit group identifier in the public response.
+The structured neural parser uses one contextual encoder with three learned outputs. The argument-span head finds answer boundaries in the source. The question head predicts the seven constrained QA-SRL slots—such as the question word, auxiliary, subject placeholder, verb form, object placeholders, and preposition—and code deterministically realizes the final question. The mention-qualifier head predicts controlled framing labels and selects their cue evidence from the same source. Several spans can remain grouped under one role question or one qualifier through explicit grouped evidence.
 
 The T5-small QASem comparison generates the complete question-answer set as text. Its outputs are aligned back to the source, and invalid, duplicate, or ungrounded answers remain measured errors.
 
 The current rule baseline exercises the same public interface but is not a learned semantic parser. It identifies configured verbs and returns nearby surface text. Roles such as `before_predicate` describe position only, not semantic meaning.
 
+The public schema distinguishes an unassessed qualifier field from an assessed empty list. Every populated qualifier has a controlled kind and one or more exact source spans. The rule baseline attaches conservative lexical cues; trained systems and the operational-style challenge set must evaluate qualifier scope separately.
+
 | Component | Current baseline | Research target |
 | --- | --- | --- |
 | Predicate coverage | Configured verbs | Verbal and eventive nominal predicates |
 | Arguments | Surface position and prepositions | Grounded participant and circumstance spans with QA-SRL supervision |
+| Mention qualifiers | Conservative lexical cues with exact offsets | Predicate-local qualified-mention labels and grounded cue spans |
 | Learning | None | Fine-tuned encoder and comparison generator |
 | Score | Heuristic completeness | Separately calibrated predicate and argument probabilities |
 | Evaluation | Software behavior | Multi-seed extraction, transfer, calibration, and systems study |
@@ -143,11 +150,11 @@ flowchart LR
 
 These corpora provide research supervision and benchmark views; they are not the serving interface. The verbal training source is QA-SRL Bank 2.1, with QA-SRL Gold Standard used for primary verbal development and test evaluation. QANom supplies nominal candidates, contextual eventivity labels, related verbal forms, role questions, and answer spans.
 
-Dataset preparation uses an evidence-preserving canonical representation that retains source identifiers, tokens, official splits, verb-inflection paradigms, all seven question slots, question and answer provenance, available tense/aspect/voice/negation fields, multiple judgments, alternative or grouped spans, and negative nominal candidates. The adapter normalizes empty slots to `_`, reconstructs canonical space-separated text from release tokens, counts exact duplicate QANom rows once, and records discarded release-only columns and upstream anomalies in the manifest. The public inference response remains smaller because serving output and training evidence have different requirements.
+Dataset preparation uses an evidence-preserving canonical representation that retains source identifiers, tokens, official splits, verb-inflection paradigms, all seven question slots, question and answer provenance, available tense/aspect/voice/negation fields, multiple judgments, alternative or grouped spans, negative nominal candidates, and optional predicate-local mention qualifiers. QA-SRL and QANom do not supply complete qualifier supervision, so their adapter records remain unassessed rather than receiving invented labels. The adapter normalizes empty slots to `_`, reconstructs canonical space-separated text from release tokens, counts exact duplicate QANom rows once, and records discarded release-only columns and upstream anomalies in the manifest. The public inference response remains smaller because serving output and training evidence have different requirements.
 
 QANom development and test sentences intentionally overlap QA-SRL Gold Standard source material within the same evaluation role. A release-wide comparison found no development-to-test identity overlap, but it found 11 exact sentence texts copied from training material into the selected development or test protocol under different source and document IDs. The fixed `cross-role-document-quarantine-v1` policy preserves evaluation unchanged and excludes every training sentence from the seven affected training documents across both tasks.
 
-The operational-style challenge set will be authored or explicitly licensed, annotated, adjudicated, and frozen before model comparisons use it. Unless representative real operational text is available, the report will not describe it as proof of operational-domain performance.
+The operational-style challenge set will be authored or explicitly licensed, annotated, adjudicated, and frozen before model comparisons use it. A versioned [pilot protocol](docs/challenge_set/protocol.md), [annotation guide](docs/challenge_set/annotation_guide.md), [rights template](docs/challenge_set/source_notice_template.md), and [20-record workbook](docs/challenge_set/pilot_worksheets.xlsx) are now prepared; no pilot note has been accepted yet. Without a second human annotator, the pilot can refine the guide but E1 cannot be called independently annotated, adjudicated, or frozen. Unless representative real operational text is available, the report will not describe it as proof of operational-domain performance.
 
 ## Evaluation
 
@@ -156,6 +163,8 @@ The primary research extraction measure is labeled QA-pair F1: a prediction must
 The scorer-ready gold view uses `valid-judgment-union-v1`. Raw judgments remain preserved; a question enters the evaluation view when at least one judgment marks it valid, and distinct answer alternatives from valid judgments are unioned. Exact duplicates count once. A retained valid judgment with no answer is counted but does not create an invented span, and questions attached to an upstream non-eventive nominal remain recorded as anomalies without becoming gold QA pairs.
 
 Three named scoring contracts prevent prior-work comparison from being confused with the project’s main result. `primary-end-to-end-v1` evaluates the union of gold and predicted predicate keys, uses maximum-cardinality then maximum-IoU matching, and charges missed or spurious predicates to downstream counts. `qasrl-gs-compatible-v1` uses the Gold Standard predicate scope, inclusive `0.5` overlap, and a frozen five-field question-equivalence rule; it is compatible with the checked reference but is not claimed as byte-for-byte official because that revision is missing a callable dependency. `qanom-reference-v1` preserves QANom’s inner join, strict overlap greater than `0.3`, greedy span-value matching, coarse roles, role alignment, and omission of argument counts when eventivity disagrees.
+
+When gold challenge predicates contain qualifier annotation, the primary scorer also reports `mention-qualifier-label-and-exact-evidence-v1`: one F1 score for qualifier kinds and another for the exact grouped token and character spans supporting them. The two reference-compatible modes remain unchanged and return no qualifier metric.
 
 The complete-system report will lead with raw-text event detection and grounded relation extraction under `primary-end-to-end-v1`; the QA-specific views remain dataset-aligned diagnostics and prior-work comparators.
 
@@ -168,7 +177,7 @@ Every neural comparison uses at least three paired seeds and reports the mean an
 | Study | Purpose | Status |
 | --- | --- | --- |
 | E0: Software and rule baseline | Establish the interface, deterministic lower bound, and error taxonomy. | Implemented; corpus evaluation pending. |
-| E1: Annotation, scorer, and challenge-set layer | Preserve QA-SRL/QANom evidence, reproduce metrics, and freeze operational-style evaluation. | Adapters, manifests, verified-release scans, quarantine policy, reusable bundles, and scorer contracts implemented; challenge set pending. |
+| E1: Annotation, scorer, and challenge-set layer | Preserve QA-SRL/QANom evidence, reproduce metrics, and freeze operational-style evaluation. | Adapters, manifests, scans, quarantine, bundles, scorer contracts, qualifier schema, and pilot materials implemented; authored and independently annotated challenge data pending. |
 | E2: QASem reproduction | Establish the T5-small generative comparison on the verified preparation. | Pending. |
 | E3: Structured verbal parser | Train span detection and seven-slot question prediction on verbal QA-SRL. | Pending. |
 | E3.5: Verbal raw-text vertical slice | Connect a simple verbal candidate layer to the trained parser and measure evidence-linked output, stage errors, and latency before the broader ablations. | Pending. |
@@ -179,7 +188,7 @@ Every neural comparison uses at least three paired seeds and reports the mean an
 
 ## Results status
 
-The current evidence establishes data-pipeline and software behavior only. The complete suite contains 102 tests covering schema validation, exact grounding, archive verification and safe extraction, atomic artifact publication, strict adapter behavior, canonical JSONL round trips, manifest determinism, source-change detection, split leakage, document quarantine, consolidation anomalies, matching boundaries, question equivalence, scorer contracts, reusable evaluation bundles, and all three CLIs.
+The current evidence establishes data-pipeline and software behavior only. The complete suite contains 115 tests covering schema validation, exact grounding, mention-qualifier cues, archive verification and safe extraction, atomic artifact publication, strict adapter behavior, canonical JSONL round trips, manifest determinism, source-change detection, split leakage, document quarantine, consolidation anomalies, matching boundaries, question equivalence, scorer contracts, reusable evaluation bundles, and all three CLIs.
 
 Full scans of every selected release file reproduce the documented QA-SRL and QANom record, candidate, question, and judgment counts. They also preserve and report one QA-SRL valid judgment with no answer span; 24 exact duplicate QANom training QA rows; 57 QANom development eventivity/question conflicts; one reconstructed missing QANom development answer string; case-normalized noun fields; and 1,141 nonempty values from the accidental QANom test index column. These are preparation findings, not model-quality results.
 
@@ -238,9 +247,9 @@ The research datasets do not establish performance on a company’s tickets, ema
 
 - The current extraction baseline covers configured verbs only and does not detect nominal predicates.
 - Surface roles describe location, not semantic meaning.
-- The baseline does not reliably represent passive voice, negation, modality, coordination, coreference, implicit arguments, or predicate senses.
+- The baseline attaches conservative lexical mention qualifiers but does not reliably resolve their scope, passive voice, coordination, coreference, implicit arguments, or predicate senses.
 - QA-SRL and QANom use research domains rather than real operational notes.
-- The operational-style challenge set is not yet authored, independently annotated, adjudicated, or frozen, so E1 is not complete.
+- The operational-style pilot materials exist, but the notes are not yet authored or independently annotated and no scored set is adjudicated or frozen, so E1 is not complete.
 - Supplied-predicate extraction is only a component evaluation; the raw-text candidate and classification stages are required for any complete-system claim.
 - The optional product-facing role adapter is not yet implemented or evaluated.
 - The neural study fine-tunes pretrained models; it does not pretrain a foundation model from random weights.

@@ -41,7 +41,7 @@ from .common import (
 
 
 QANOM_RELEASE = "2bce70e8a39b40157ba97f38e1a8ae7619b30162"
-QANOM_ADAPTER_VERSION = "0.1.0"
+QANOM_ADAPTER_VERSION = "0.2.0"
 QANOM_SPLITS = frozenset({"train", "dev", "test"})
 QANOM_SEPARATOR = "~!~"
 
