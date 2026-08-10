@@ -1,41 +1,15 @@
 """Public API for the semantic action extractor."""
 
-from .annotation_schema import (
-    ANNOTATION_SCHEMA_VERSION,
-    AnnotationProvenance,
-    AnnotationRecord,
-    AnnotationToken,
-    AnswerAlternative,
-    EventivityJudgment,
-    PredicateCandidate,
-    QASRLQuestion,
-    QASRLQuestionSlots,
-    QuestionJudgment,
-    TokenAlignedSpan,
-    VerbInflectionParadigm,
-)
 from .baseline import BaselineConfig, RuleBasedExtractor
-from .schema import ActionArgument, ActionFrame, ExtractionResult, TextSpan
+from .schema import ActionFrame, ExtractionResult, Qualifier, TextSpan
 
 __all__ = [
-    "ANNOTATION_SCHEMA_VERSION",
-    "ActionArgument",
     "ActionFrame",
-    "AnnotationProvenance",
-    "AnnotationRecord",
-    "AnnotationToken",
-    "AnswerAlternative",
     "BaselineConfig",
-    "EventivityJudgment",
     "ExtractionResult",
-    "PredicateCandidate",
-    "QASRLQuestion",
-    "QASRLQuestionSlots",
-    "QuestionJudgment",
+    "Qualifier",
     "RuleBasedExtractor",
     "TextSpan",
-    "TokenAlignedSpan",
-    "VerbInflectionParadigm",
 ]
 
-__version__ = "0.2.0"
+__version__ = "0.1.0"

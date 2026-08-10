@@ -1,118 +1,75 @@
 {
-  "schema_version": "0.2.0",
   "text": "Maya emailed the signed contract to Jordan on Tuesday.\nThe support team escalated the incident to Priya.\n",
   "actions": [
     {
+      "actor": {
+        "text": "Maya",
+        "start": 0,
+        "end": 4
+      },
       "predicate": {
         "text": "emailed",
         "start": 5,
         "end": 12
       },
       "predicate_lemma": "email",
-      "predicate_type": "verbal",
-      "arguments": [
+      "patient": {
+        "text": "the signed contract",
+        "start": 13,
+        "end": 32
+      },
+      "qualifiers": [
         {
-          "role": "before_predicate",
-          "role_scheme": "surface",
-          "span": {
-            "text": "Maya",
-            "start": 0,
-            "end": 4
-          },
-          "cue": null
-        },
-        {
-          "role": "after_predicate",
-          "role_scheme": "surface",
-          "span": {
-            "text": "the signed contract",
-            "start": 13,
-            "end": 32
-          },
-          "cue": null
-        },
-        {
-          "role": "to",
-          "role_scheme": "surface",
-          "span": {
+          "relation": "to",
+          "value": {
             "text": "Jordan",
             "start": 36,
             "end": 42
-          },
-          "cue": {
-            "text": "to",
-            "start": 33,
-            "end": 35
           }
         },
         {
-          "role": "on",
-          "role_scheme": "surface",
-          "span": {
+          "relation": "on",
+          "value": {
             "text": "Tuesday",
             "start": 46,
             "end": 53
-          },
-          "cue": {
-            "text": "on",
-            "start": 43,
-            "end": 45
           }
         }
       ],
       "sentence_index": 0,
-      "score": 0.85,
-      "score_type": "heuristic_completeness",
-      "extractor": "rule-based-v1"
+      "confidence": 0.85,
+      "extractor": "rule-based-v0"
     },
     {
+      "actor": {
+        "text": "The support team",
+        "start": 55,
+        "end": 71
+      },
       "predicate": {
         "text": "escalated",
         "start": 72,
         "end": 81
       },
       "predicate_lemma": "escalate",
-      "predicate_type": "verbal",
-      "arguments": [
+      "patient": {
+        "text": "the incident",
+        "start": 82,
+        "end": 94
+      },
+      "qualifiers": [
         {
-          "role": "before_predicate",
-          "role_scheme": "surface",
-          "span": {
-            "text": "The support team",
-            "start": 55,
-            "end": 71
-          },
-          "cue": null
-        },
-        {
-          "role": "after_predicate",
-          "role_scheme": "surface",
-          "span": {
-            "text": "the incident",
-            "start": 82,
-            "end": 94
-          },
-          "cue": null
-        },
-        {
-          "role": "to",
-          "role_scheme": "surface",
-          "span": {
+          "relation": "to",
+          "value": {
             "text": "Priya",
             "start": 98,
             "end": 103
-          },
-          "cue": {
-            "text": "to",
-            "start": 95,
-            "end": 97
           }
         }
       ],
       "sentence_index": 1,
-      "score": 0.85,
-      "score_type": "heuristic_completeness",
-      "extractor": "rule-based-v1"
+      "confidence": 0.85,
+      "extractor": "rule-based-v0"
     }
   ],
   "warnings": []
