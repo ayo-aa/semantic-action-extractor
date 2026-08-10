@@ -1,0 +1,17 @@
+config_version = 1
+variant = "predicate_signal"
+model_id = "google-bert/bert-base-uncased"
+model_revision = "86b5e0934494bd15c9632b12f734a8a67f723594"
+tokenizer_id = "google-bert/bert-base-uncased"
+tokenizer_revision = "86b5e0934494bd15c9632b12f734a8a67f723594"
+prepared_data_fingerprint = "2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b"
+max_length = 128
+batch_size = 32
+learning_rate = 1e-5
+epochs = 2
+weight_decay = 0.01
+warmup_ratio = 0.0
+gradient_clip_norm = 1.0
+paired_seeds = [13, 17, 23]
+checkpoint_selection_metric = "development_argument_f1"
+device_request = "mps"

@@ -15,17 +15,20 @@ evaluation, run provenance, integrity-checked checkpoints, and a paired
 three-seed training engine with a verified exact-match resume path, per-output
 nonblocking locking, and constant learning rate after optional warmup.
 
-It does **not** contain a prepared research dataset, research-trained
-checkpoint, or model-quality result. A complete six-run rehearsal on invented
-data passed locally on Apple MPS, including checkpoint reload and aggregate
+The tracked repository contains no raw or prepared corpus, research-trained
+checkpoint, or model-quality result. A private Git-ignored EWT dataset is now
+prepared locally, and one full batch-32 forward/backward/optimizer step on the
+actual prepared data passed on Apple MPS. A separate complete six-run rehearsal
+on invented data also passed, including checkpoint reload and aggregate
 benchmark execution; those synthetic artifacts and scores are not portfolio
-results. MASC was rejected. The selected no-registration route now joins pinned
+results. MASC was rejected. The selected no-registration route joins pinned
 public PropBank EWT gold skeletons to pinned public UD English EWT r2.2 words.
 Its adapter, fail-closed gate, and leakage controls are implemented and pass.
 The [aggregate-only private source review](reports/ewt_private_source_review.md)
 inspected all 13 predicate-anchor divergences, the one token-width mismatch,
-and 30/30 deterministically selected aligned records; real preparation and
-training have not run.
+and 30/30 deterministically selected aligned records. Private preparation and
+the real-data MPS preflight are complete; the six-run research training study
+has not run.
 
 ## What the project measures
 
@@ -86,7 +89,7 @@ flowchart LR
     A["Raw text"] --> B["Rule predicate proposer<br/>implemented"]
     B -.->|planned orchestration| C["Sentence plus supplied predicate"]
     D["Pinned public PropBank plus UD EWT<br/>no account required"] --> E["EWT adapter and source gate passed<br/>13/13 anchors plus 30/30 review"]
-    E -.->|next private run| G["Prepared split JSONL<br/>not generated"]
+    E --> G["Prepared split JSONL<br/>private, ignored, and fingerprinted"]
     G --> C
     C --> H["Training-only labels, WordPiece alignment,<br/>batching and explicit predicate signal"]
     H --> I["Pinned BERT plus linear token head"]
@@ -100,9 +103,9 @@ Implemented software and current evidence are intentionally distinguished:
 | Boundary | Repository status | Empirical status |
 | --- | --- | --- |
 | Rule action extractor | API and CLI implemented | No corpus-quality or systems benchmark |
-| Prepared dataset contract | Canonical three-split JSONL, manifest fingerprints, exact duplicate/leakage checks | EWT adapter and aggregate gate pass; no prepared EWT files written |
+| Prepared dataset contract | Canonical three-split JSONL, manifest fingerprints, exact duplicate/leakage checks | Private ignored EWT preparation completed: 31,101/3,775/3,610 examples; fingerprint `2eb2f0e2…b66e1b` |
 | Label and alignment boundary | Train-only immutable vocabulary, BIO/WordPiece alignment, first-subword collapse | Synthetic tests and invented-data rehearsal passed |
-| Model boundary | Full-fine-tuning BERT plus linear head; model and tokenizer revisions must be pinned by experiment config | Six-run invented-data rehearsal passed on MPS; no research-corpus training run |
+| Model boundary | Full-fine-tuning BERT plus linear head; model and tokenizer revisions pinned in frozen paired configs | Actual prepared-data batch-32 optimizer-step preflight passed on MPS; no research-corpus training run |
 | Evaluation | Exact micro argument span P/R/F1, per-role metrics, token accuracy, and supplied-predicate diagnostics | No development or test score |
 | Training and ablation | Paired three-seed engine and strict CLI; exact-match resume, per-output nonblocking lock, and constant LR after warmup | All six seed/variant runs completed on invented data and the recovery boundary passed independent fault-injection review; research experiment not run |
 | Systems measurement | Canonical aggregate p50/p95, throughput, peak-memory, and checkpoint-size contract | Both invented-data variant checkpoints completed the real benchmark path; no research measurements |
@@ -139,12 +142,22 @@ The aggregate gate reports:
 
 The pinned tokenizer preflight builds a train-derived vocabulary of 111 labels,
 including `O` and continuation closure, with no development or test label
-outside it. These are aggregate feasibility counts, not prepared files or model
-results. The private aggregate-only source review checked all 13
+outside it. The private ignored preparation reproduces these counts at dataset
+fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`;
+the [preparation record](reports/ewt_preparation.md) retains its split-file and
+provenance SHA-256 values. These are data artifacts and pre-outcome checks, not
+model results. The private aggregate-only source review checked all 13
 metadata-versus-primary predicate-anchor divergences, the one token-width
 mismatch, and 30/30 deterministically selected aligned verbal records. No
 account, registration, CourseWorks login, LDC download, or user-supplied corpus
 file is required.
+
+The frozen predicate-signal configuration also completed one full batch-32
+forward/backward, gradient-clipping, AdamW, and scheduler step on the actual
+prepared data at the longest retained sequence length of 118. It passed on MPS
+in 3.0069 seconds with 3,211,741,952 allocated bytes. This is a fit preflight,
+not a training run, score, or systems benchmark.
 
 This is a validated inferred cross-release join, not PropBank's prescribed LDC
 mapping. UD licenses its annotations and database while expressly noting
@@ -208,8 +221,8 @@ separate future evaluations. Token accuracy is diagnostic because frequent
 | Study | Purpose | Status |
 | --- | --- | --- |
 | E0 — rule baseline | Runnable, source-grounded product interface and predicate proposer | Software implemented; quality and systems results pending |
-| E1 — SRL/data foundation | Fixed BIO contract, data gates, adapter, splits, leakage controls, evaluation, provenance | Selected EWT adapter and gate pass; 13/13 anchor divergences, one width mismatch, and 30/30 deterministic review records inspected; ignored preparation not yet run |
-| E2 — neural reproduction | Fine-tune the predicate-conditioned BERT model on the frozen prepared split | Invented-data runtime rehearsal passed; research run awaits EWT preparation and frozen configs |
+| E1 — SRL/data foundation | Fixed BIO contract, data gates, adapter, splits, leakage controls, evaluation, provenance | Complete: selected EWT gate/review pass and private ignored preparation is fingerprinted at `2eb2f0e2…b66e1b` |
+| E2 — neural reproduction | Fine-tune the predicate-conditioned BERT model on the frozen prepared split | Paired configs frozen and real-data batch-32 MPS optimizer-step preflight passed; six-run research training awaits reliable power |
 | E3 — bounded ablation | Compare predicate signal with an otherwise identical no-signal run over three paired seeds | Six-run invented-data rehearsal passed; research experiment not run |
 | E4 — analysis | Report errors, latency, throughput, memory, artifact size, and limitations | Both synthetic checkpoint variants completed aggregate benchmarking; research measurements not run |
 
@@ -241,6 +254,9 @@ separate future evaluations. Token accuracy is diagnostic because frequent
   aggregate EWT alignment, conversion, split, and preflight evidence.
 - [reports/ewt_private_source_review.md](reports/ewt_private_source_review.md)
   records the non-reconstructive aggregate result of the private source review.
+- [reports/ewt_preparation.md](reports/ewt_preparation.md) records the private
+  preparation fingerprints, frozen configs, and real-data MPS preflight using
+  aggregate-only evidence.
 - [reports/babysrl_audit.md](reports/babysrl_audit.md) preserves BabySRL's
   historical structural pass as fallback evidence.
 - [reports/neural_runtime_smoke.md](reports/neural_runtime_smoke.md) records the
@@ -266,8 +282,8 @@ Run the dependency-free test suite:
 PYTHONPATH=src python -m unittest discover -s tests -v
 ```
 
-With both exact ignored public checkouts present, the EWT command reproduces the
-aggregate gate without writing prepared data:
+With both exact ignored public checkouts present, the EWT command can reproduce
+the aggregate gate without writing prepared data:
 
 ```bash
 semantic-action-prepare-ewt \
@@ -275,21 +291,27 @@ semantic-action-prepare-ewt \
   data/raw/ewt_sources/UD_English-EWT
 ```
 
-No account or manual user review is required. To perform the first real private
-preparation, add `--output-directory data/processed/ewt`; the command writes
-canonical splits, a manifest, and EWT provenance only inside the ignored data
-boundary. That preparation has not yet been run.
+No account or manual user review is required. The first real private
+preparation has now completed with
+`--output-directory data/processed/ewt-span-srl-v1`.
+Its canonical splits, manifest, and EWT provenance remain inside the ignored
+data boundary. The resulting fingerprint is
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`;
+see the [aggregate-only preparation record](reports/ewt_preparation.md).
 
-The paired training command is implemented, but the placeholders below cannot
-become valid frozen configurations until the EWT preparation supplies its
-prepared-data fingerprint:
+The tracked paired configurations are now frozen against that fingerprint:
+`configs/ewt_predicate_signal.toml` has digest
+`9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc`,
+and `configs/ewt_no_predicate_signal.toml` has digest
+`19ff94ff8bf839ee2fd5ebdab8ffed24b1ad7b243cc413a2ba687262f8f9d866`.
+The future training command is:
 
 ```bash
 semantic-action-train-srl \
-  --predicate-config path/to/predicate_signal.toml \
-  --ablation-config path/to/no_predicate_signal.toml \
-  --dataset path/to/ignored/prepared-dataset \
-  --output-root path/to/new/ignored/run-directory \
+  --predicate-config configs/ewt_predicate_signal.toml \
+  --ablation-config configs/ewt_no_predicate_signal.toml \
+  --dataset data/processed/ewt-span-srl-v1 \
+  --output-root runs/ewt-paired-v1 \
   --git-revision 40-character-lowercase-commit
 ```
 
@@ -304,10 +326,10 @@ After an interruption, rerun the identical command with only `--resume` added:
 
 ```bash
 semantic-action-train-srl \
-  --predicate-config path/to/predicate_signal.toml \
-  --ablation-config path/to/no_predicate_signal.toml \
-  --dataset path/to/ignored/prepared-dataset \
-  --output-root path/to/the/same/ignored/run-directory \
+  --predicate-config configs/ewt_predicate_signal.toml \
+  --ablation-config configs/ewt_no_predicate_signal.toml \
+  --dataset data/processed/ewt-span-srl-v1 \
+  --output-root runs/ewt-paired-v1 \
   --git-revision the-same-40-character-lowercase-commit \
   --resume
 ```
@@ -318,8 +340,9 @@ revision, and runtime identity. Before reusing work it validates each completed
 result/checkpoint pair and each completed predicate/no-predicate seed pair. It
 recovers only exact writer-owned interrupted atomic writes, next-checkpoint
 staging, and checkpoint-tombstone cleanup; lookalike or unknown artifacts are
-rejected rather than removed. These verified durability controls do not imply
-that EWT preparation or research training has run.
+rejected rather than removed. These verified durability controls and the
+single real-data optimizer-step preflight do not imply that the six-run
+research training study has run.
 
 After a checkpoint exists, the real benchmark command validates its metadata,
 labels, state digest, config, and dataset before loading it. It measures fixed
@@ -328,7 +351,7 @@ single-example and eight-example batches and writes only canonical aggregates:
 ```bash
 semantic-action-benchmark-srl \
   --config path/to/exact-variant.toml \
-  --dataset path/to/ignored/prepared-dataset \
+  --dataset data/processed/ewt-span-srl-v1 \
   --checkpoint path/to/checkpoint-bundle \
   --output path/to/new/ignored/benchmark.json
 ```

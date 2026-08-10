@@ -1,6 +1,6 @@
-# Neural runtime rehearsal
+# Neural runtime rehearsal and EWT fit preflight
 
-Status: **PASS on invented synthetic data only; no research result**
+Status: **PASS for synthetic orchestration and one actual prepared-EWT optimizer step; no research result**
 
 On 2026-08-09, the complete paired neural path was exercised at Git revision
 `3d93c10ac3d92b0695326f0816a5fadaa05fa5c8`. The rehearsal used 14 invented
@@ -34,6 +34,31 @@ and 5,401,001,984 bytes allocated by its driver after the step.
 This establishes that the original batch-size anchor fits this host for one
 maximum-shape step. It is not a full-run memory guarantee, throughput result,
 or model-quality measurement.
+
+## Actual prepared-EWT optimizer-step preflight
+
+On 2026-08-10, the frozen predicate-signal configuration ran one full step on
+the real private prepared EWT data. The preparation and configuration identities
+were:
+
+| Item | Value |
+| --- | --- |
+| Adapter implementation commit | `9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42` |
+| Prepared-data fingerprint | `2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b` |
+| Predicate config digest | `9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc` |
+| Batch size | 32 |
+| Longest retained sequence | 118 model tokens |
+| Output labels | 111 |
+| Completed operations | Forward, backward, gradient clipping, AdamW update, scheduler step |
+| Elapsed time | 3.0069 seconds |
+| MPS allocated bytes | 3,211,741,952 |
+| Outcome | PASS |
+
+This actual-data preflight establishes that the longest retained batch shape
+fits and completes one optimizer update under the frozen predicate variant. It
+does not establish sustained memory or thermal behavior, total runtime,
+convergence, accuracy, an ablation effect, or checkpoint benchmark performance.
+See the aggregate-only [EWT preparation record](ewt_preparation.md).
 
 ## Paired training rehearsal
 
@@ -89,25 +114,27 @@ checkpoint-tombstone cleanup. Lookalike or unknown artifacts fail closed, and
 a per-output nonblocking lock rejects concurrent writers. Operationally, the
 recovery command is the original training command with only `--resume` added.
 
-This review used synthetic and injected test boundaries. It did not prepare
-EWT data, run the research experiment, produce a score, or create a research
-checkpoint.
+This durability review itself used synthetic and injected test boundaries. EWT
+was prepared separately afterward, but neither activity ran the paired research
+experiment, produced a score, or created a research checkpoint.
 
 ## Interpretation and remaining gate
 
-The rehearsal validates the installed optional dependencies, local Apple-MPS
-execution, six-run orchestration, checkpoint round trip, paired aggregation,
-systems-benchmark boundary, and exact-match interruption recovery. It also
-shows that Colab or Columbia compute is not required for the planned run.
+The evidence validates the installed optional dependencies, local Apple-MPS
+execution, synthetic six-run orchestration, checkpoint round trip, paired
+aggregation, systems-benchmark boundary, exact-match interruption recovery,
+and one actual prepared-data optimizer step. It also shows that Colab or
+Columbia compute is not required for the planned run.
 
 It does **not** establish semantic-role performance. The selected EWT adapter
 and source gate pass using public pinned sources. The
 [aggregate-only private source review](ewt_private_source_review.md) inspected
 all 13 predicate-anchor divergences, the one token-width mismatch, and 30/30
 deterministically selected aligned verbal records; no account, registration,
-CourseWorks session, LDC download, or user manual review is required. The
-research experiment still awaits private ignored EWT preparation, a frozen
-data fingerprint and model configurations, and then the two-epoch paired
-training run. Raw/prepared text and trained weights remain private; public
-evidence is limited to code and non-reconstructive aggregates pending a
-separate weights review.
+CourseWorks session, LDC download, or user manual review is required. Private
+ignored EWT preparation and both paired configurations are now frozen, and the
+actual-data fit preflight passes. The two-epoch, three-seed paired training run
+and real checkpoint benchmark have not run and await reliable power.
+Raw/prepared text and future trained weights remain private; public evidence is
+limited to code and non-reconstructive aggregates pending a separate weights
+review.

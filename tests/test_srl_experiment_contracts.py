@@ -23,6 +23,7 @@ from semantic_action_extractor.srl.run_metadata import (
     RunMetadata,
     require_exact_run_metadata,
 )
+from semantic_action_extractor.srl.training_engine import validate_paired_configs
 
 
 MODEL_REVISION = "a" * 40
@@ -200,6 +201,45 @@ class TrainingConfigTests(unittest.TestCase):
             parse_training_config(b"config_version = 1")
         with self.assertRaisesRegex(ValueError, "invalid training configuration"):
             parse_training_config("not = [valid")
+
+    def test_checked_in_ewt_configs_are_a_frozen_pair(self) -> None:
+        repository = Path(__file__).resolve().parents[1]
+        predicate = load_training_config(
+            repository / "configs" / "ewt_predicate_signal.toml"
+        )
+        ablation = load_training_config(
+            repository / "configs" / "ewt_no_predicate_signal.toml"
+        )
+
+        validate_paired_configs(predicate, ablation)
+        self.assertEqual(
+            predicate.prepared_data_fingerprint,
+            "2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b",
+        )
+        self.assertEqual(predicate.paired_seeds, (13, 17, 23))
+        self.assertEqual(predicate.device_request, "mps")
+        self.assertEqual(predicate.max_length, 128)
+        self.assertEqual(predicate.batch_size, 32)
+        self.assertEqual(
+            predicate.digest,
+            "9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc",
+        )
+        self.assertEqual(
+            ablation.digest,
+            "19ff94ff8bf839ee2fd5ebdab8ffed24b1ad7b243cc413a2ba687262f8f9d866",
+        )
+        preflight = json.loads(
+            (repository / "reports" / "ewt_mps_preflight.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        self.assertEqual(preflight["status"], "pass")
+        self.assertIs(preflight["training_run_completed"], False)
+        self.assertEqual(preflight["configuration"]["digest"], predicate.digest)
+        self.assertEqual(
+            preflight["dataset"]["fingerprint"],
+            predicate.prepared_data_fingerprint,
+        )
 
 
 class RunMetadataTests(unittest.TestCase):

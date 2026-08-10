@@ -33,11 +33,13 @@ The frozen aggregate stages are:
 | Modeled at `max_length=128` | 31,039 | 3,775 | 3,610 | 38,424 |
 
 The pinned tokenizer preflight builds 111 train-derived labels, including `O`
-and continuation closure, with no development or test label outside train. No
-real EWT prepared split, data fingerprint, training run, result, or checkpoint
-exists yet.
+and continuation closure, with no development or test label outside train. The
+real EWT splits are now prepared privately at ignored path
+`data/processed/ewt-span-srl-v1` with fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+No research training run, result, or checkpoint exists yet.
 
-Audit without writing prepared records:
+Reproduce the audit without writing prepared records:
 
 ```bash
 semantic-action-prepare-ewt \
@@ -45,9 +47,18 @@ semantic-action-prepare-ewt \
   data/raw/ewt_sources/UD_English-EWT
 ```
 
-The first real private preparation will add
-`--output-directory data/processed/ewt`. That command has not yet been run. Its
-canonical split JSONL, manifest, and provenance receipt must remain ignored.
+The completed private preparation used the same command with:
+
+```bash
+semantic-action-prepare-ewt \
+  data/raw/ewt_sources/propbank-release \
+  data/raw/ewt_sources/UD_English-EWT \
+  --output-directory data/processed/ewt-span-srl-v1
+```
+
+Its canonical split JSONL, manifest, and provenance receipt remain ignored.
+Their non-reconstructive hashes and counts are recorded in the
+[preparation report](../reports/ewt_preparation.md).
 
 ## Rejected and fallback artifacts
 
@@ -65,6 +76,8 @@ prepared examples, and future trained weights remain private and ignored. Only
 source-neutral code and non-reconstructive aggregate metrics are public pending
 a separate checkpoint-release review.
 
-After private preparation supplies a fingerprint, `semantic-action-train-srl`
-will accept only a matching prepared dataset and a new ignored run directory.
+The frozen paired configurations are `configs/ewt_predicate_signal.toml` and
+`configs/ewt_no_predicate_signal.toml`; both bind the prepared fingerprint.
+`semantic-action-train-srl` will accept them only with the matching prepared
+dataset and a new ignored output at `runs/ewt-paired-v1`. Training has not run.
 See [DATA_USAGE.md](../DATA_USAGE.md) before any data or artifact operation.

@@ -1,0 +1,43 @@
+{
+  "batch": {
+    "batch_size": 32,
+    "selection_policy": "stable-longest-retained-tokenized-sequence-first/v1",
+    "sequence_length": 118
+  },
+  "configuration": {
+    "digest": "9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc",
+    "path": "configs/ewt_predicate_signal.toml",
+    "seed": 13,
+    "variant": "predicate_signal"
+  },
+  "dataset": {
+    "fingerprint": "2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b",
+    "label_count": 111,
+    "overlength_train_examples": 62,
+    "retained_train_examples": 31039
+  },
+  "implementation_git_revision": "9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42",
+  "measurement": {
+    "elapsed_seconds": 3.006907000002684,
+    "memory_method": "torch.mps.current_allocated_memory-after-synchronized-step",
+    "mps_allocated_bytes": 3211741952
+  },
+  "operations": [
+    "forward",
+    "backward",
+    "gradient_clipping",
+    "adamw_update",
+    "scheduler_step",
+    "mps_synchronize"
+  ],
+  "record_date": "2026-08-10",
+  "runtime": {
+    "device": "mps",
+    "python": "3.12.13",
+    "torch": "2.13.0",
+    "transformers": "5.14.1"
+  },
+  "schema_version": "semantic-action-extractor.ewt-mps-preflight/v1",
+  "status": "pass",
+  "training_run_completed": false
+}

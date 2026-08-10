@@ -9,11 +9,12 @@ The repository contains two separate components:
    semantic-role model and paired ablation, with no repository-tracked or
    research-trained weights.
 
-No prepared research data, research-corpus training run, model-quality result,
-or research checkpoint exists. A complete local rehearsal did train six
-Git-ignored checkpoints on invented data, verify and reload them, and benchmark
-one checkpoint per variant. This model card therefore describes an intended
-experiment and implemented software boundary, not a released model.
+No prepared research data is tracked in the repository. A private Git-ignored
+EWT dataset is prepared and fingerprinted, but no research-corpus training run,
+model-quality result, or research checkpoint exists. A complete local rehearsal
+did train six Git-ignored checkpoints on invented data, verify and reload them,
+and benchmark one checkpoint per variant. This model card therefore describes
+an intended experiment and implemented software boundary, not a released model.
 
 ## `rule-based-v0`
 
@@ -87,7 +88,8 @@ explicit identifiers and counts.
 | Exact-match interruption recovery and per-output nonblocking lock | Implemented and independently durability-reviewed with injected failures and adversarial artifacts |
 | Validated-checkpoint systems benchmark CLI and aggregate-only contract | Implemented; both synthetic checkpoint variants completed it |
 | Full paired PyTorch/Transformers runtime rehearsal | Six invented-data seed/variant runs passed on Apple MPS |
-| Prepared EWT training data | None |
+| Prepared EWT training data | Completed privately in ignored storage: 31,101/3,775/3,610 examples; fingerprint `2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b` |
+| Actual prepared-data MPS preflight | Predicate variant passed one full batch-32 optimizer step at longest retained sequence 118 with 111 labels |
 | Research training/evaluation | Not run |
 | Research checkpoint | None |
 
@@ -118,13 +120,17 @@ instances. The
 inspected all 13 predicate-anchor divergences, the one token-width mismatch,
 and 30/30 deterministically selected aligned verbal records. Leakage,
 identical-input conflict, and evaluation-deduplication controls leave
-31,101/3,775/3,610 train/development/test examples eligible for preparation. At
-`max_length=128`, 62 train examples are overlength, leaving
-31,039/3,775/3,610 modeled examples. The pinned tokenizer preflight builds a
+31,101/3,775/3,610 train/development/test prepared examples. Private ignored
+preparation at implementation commit
+`9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42` produced fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+At `max_length=128`, 62 train examples are overlength, leaving
+31,039/3,775/3,610 modeled examples. The pinned tokenizer produced a
 train-derived vocabulary of 111 labels, including `O` and continuation closure,
-and finds no development or test label outside it.
+with no development or test label outside it. Split and provenance SHA-256
+values are in the [preparation record](reports/ewt_preparation.md).
 
-These are aggregate feasibility counts, not prepared files and not training
+These are prepared-data and preflight facts, not training or model-quality
 evidence. The public Git sources require no account, registration, CourseWorks
 login, LDC download, or user-provided file. The join is a validated inferred
 cross-release reconstruction, not PropBank's prescribed LDC mapping. Raw and
@@ -147,9 +153,14 @@ The fixed experiment contract requires:
 - one test evaluation for each predeclared final seed/variant run.
 
 The original anchor is batch size 32, learning rate `1e-5`, and two epochs.
-Those values are not yet a runnable checked-in neural configuration because an
-EWT prepared-data fingerprint does not exist. Any hardware-driven change must
-be declared before final outcomes.
+They are now frozen in `configs/ewt_predicate_signal.toml` and
+`configs/ewt_no_predicate_signal.toml` with canonical digests
+`9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc`
+and `19ff94ff8bf839ee2fd5ebdab8ffed24b1ad7b243cc413a2ba687262f8f9d866`.
+Both bind the prepared fingerprint. The predicate variant passed one actual-
+data MPS step at batch size 32 and longest retained sequence 118 in 3.0069
+seconds with 3,211,741,952 allocated bytes. This freezes the fit preflight; it
+does not establish full-run duration, stability, or quality.
 
 The installed `semantic-action-train-srl` command accepts the two strict paired
 configs, prepared dataset, new Git-ignored output root, and exact 40-character
@@ -166,7 +177,7 @@ identity. It revalidates every completed result/checkpoint pair and paired seed
 before reuse. Recovery is limited to exact writer-owned interrupted atomic
 writes, next-checkpoint staging, and checkpoint-tombstone cleanup; lookalikes
 and unknown artifacts are rejected. These are verified software durability
-semantics, not evidence of EWT preparation, research training, or model quality.
+semantics, not evidence that paired research training or evaluation completed.
 
 ### Evaluation contract
 
@@ -235,6 +246,6 @@ channel have all received an affirmative written review.
 
 No research development score, test score, ablation effect, error-analysis
 result, systems benchmark, operational-readiness claim, or redistributable
-checkpoint is available. The values in the EWT audit are data-conversion and
-preflight counts only; synthetic rehearsal metrics are intentionally not
-reported as model results.
+checkpoint is available. The values in the EWT audit and preparation record are
+data-conversion, prepared-artifact, and single-step fit evidence only; synthetic
+rehearsal metrics are intentionally not reported as model results.

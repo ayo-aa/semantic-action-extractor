@@ -6,8 +6,8 @@ paraphrase, or derived example is included.
 
 ## EWT preparation accounting
 
-The current corpus-backed counts describe source conversion and frozen
-pre-outcome controls, not model predictions:
+The current corpus-backed counts describe completed private preparation and
+frozen pre-outcome controls, not model predictions:
 
 | Stage or exclusion | Examples |
 | --- | ---: |
@@ -19,7 +19,7 @@ pre-outcome controls, not model predictions:
 | Cross-split duplicate-text examples excluded | 76 |
 | Identical-input conflicting examples excluded | 31 |
 | Repeated development/test semantics removed | 42 |
-| Prepared eligible | 38,486 |
+| Prepared examples written to ignored storage | 38,486 |
 | Train examples over `max_length=128` | 62 |
 | Modeled examples | 38,424 |
 
@@ -27,14 +27,19 @@ The prepared-eligible split is 31,101 train, 3,775 development, and 3,610 test;
 the modeled split is 31,039/3,775/3,610. Nonconflicting train frequency is
 preserved, while exact repeated semantics receive no extra evaluation weight.
 The pinned tokenizer preflight builds 111 train-derived labels, including `O`
-and continuation closure, with no development or test label outside train.
+and continuation closure, with no development or test label outside train. The
+prepared fingerprint is
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`;
+split and provenance hashes are recorded in the aggregate-only
+[preparation report](ewt_preparation.md).
 
 The [aggregate-only private source review](ewt_private_source_review.md)
 inspected all 13 predicate-anchor divergences, the one token-width mismatch,
 and 30/30 deterministically selected aligned verbal records. It requires no
 account, registration, or user manual review. This is a validated inferred
-PropBank-skeleton/UD-word join, not the official LDC mapping, and no prepared
-data or training run exists yet.
+PropBank-skeleton/UD-word join, not the official LDC mapping. Preparation and
+one real-data optimizer-step preflight are complete; no paired training run or
+model error result exists yet.
 
 ## Rule-baseline taxonomy
 

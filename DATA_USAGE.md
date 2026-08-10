@@ -2,16 +2,19 @@
 
 ## Current disposition
 
-No raw or prepared research dataset is committed to this repository. No corpus
-has been prepared for model input, no research-corpus training has run, no
-model-quality result exists, and no research checkpoint exists. A separate
-Git-ignored rehearsal used only invented examples to validate training and
-checkpoint software; it creates no corpus-use claim.
+No raw or prepared research dataset is committed to this repository. The EWT
+corpus has now been prepared for model input in private Git-ignored storage at
+fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+No research-corpus training has run, no model-quality result exists, and no
+research checkpoint exists. A separate Git-ignored rehearsal used only
+invented examples to validate training and checkpoint software; it creates no
+corpus-use claim.
 
 The repository includes independently written code, synthetic fixtures, source
 revision identifiers, split-policy documentation, and non-reconstructive
-aggregate audit counts. Raw sources and any future prepared JSONL remain
-ignored by Git.
+aggregate audit and preparation evidence. Raw sources and the prepared JSONL
+remain ignored by Git.
 
 ## Columbia course-data boundary
 
@@ -94,8 +97,12 @@ The corrected gate counts are:
 
 The pinned tokenizer preflight builds a train-derived vocabulary of 111 labels,
 including `O` and continuation closure, and finds no development or test label
-absent from it. These are aggregate feasibility counts, not evidence that
-prepared files or a research model exist.
+absent from it. The private preparation reproduces the 31,101/3,775/3,610
+counts at fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+Its split-file and provenance SHA-256 values are recorded without corpus content
+in [reports/ewt_preparation.md](reports/ewt_preparation.md). This is prepared-
+data evidence, not evidence that a research model or result exists.
 
 The UD EWT README licenses annotations and database rights under CC BY-SA 4.0
 but expressly notes separate copyrights in the underlying texts. Raw source
@@ -153,21 +160,33 @@ vocabulary, including `O` and continuation closure, is fitted from train only;
 absent development/test labels fail closed, and the current preflight finds
 none.
 
-## Preparation and experiment records
+The frozen predicate configuration completed one actual prepared-data batch-32
+forward/backward, gradient-clipping, AdamW, and scheduler step on MPS at longest
+retained sequence 118. It passed in 3.0069 seconds with 3,211,741,952 allocated
+bytes. This is model-input and optimizer-fit evidence only, not a research run,
+score, or benchmark.
 
-Before the first private EWT preparation and any empirical run, the project
-must record:
+## Frozen preparation and future experiment records
 
-- canonical source URLs, retrieval date, exact Git commits, and clean relevant
-  worktree status;
-- adapter revision, official split policy, duplicate/conflict policy, prepared
-  counts, exclusions, and prepared-data fingerprint;
-- training-only label order;
-- exact base-model and tokenizer repository revisions;
-- complete configuration digest, Git revision, seed and variant;
-- timestamps, resolved device, hardware, package versions, retained/drop
-  counts, and initial-state fingerprint; and
-- checkpoint state-dictionary SHA-256 and result-artifact digest.
+The completed private preparation freezes:
+
+- canonical source URLs and exact source Git commits;
+- adapter implementation commit
+  `9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42`;
+- official split and duplicate/conflict policies, prepared counts, exclusions,
+  split-file SHA-256 values, provenance receipt SHA-256, and prepared-data
+  fingerprint;
+- the 111-label training-only order and exact base-model/tokenizer revisions;
+  and
+- paired config files `configs/ewt_predicate_signal.toml` and
+  `configs/ewt_no_predicate_signal.toml`, with digests
+  `9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc`
+  and `19ff94ff8bf839ee2fd5ebdab8ffed24b1ad7b243cc413a2ba687262f8f9d866`.
+
+The future six-run study must add its exact Git revision, seed and variant,
+timestamps, resolved device, hardware, package versions, retained/drop counts,
+initial-state fingerprint, checkpoint state-dictionary SHA-256, and result-
+artifact digest.
 
 No preprocessing rule may be changed after inspecting test outcomes. The test
 split is evaluated once for each predeclared final run after development-only
@@ -184,8 +203,9 @@ Only exact writer-owned atomic-write residue, next-checkpoint staging, and
 checkpoint-tombstone cleanup can be recovered. Lookalike and unknown artifacts
 are rejected rather than removed, and the canonical journal remains in the
 completed output. These output guards are verified safety boundaries, not
-empirical evidence. The no-registration EWT route may be prepared privately
-after its pinned aggregate gate passes; that has not yet occurred.
+empirical evidence. The no-registration EWT route is now prepared privately and
+has passed a single actual-data MPS optimizer-step preflight. The paired six-run
+study has not started.
 
 ## Model and artifact rights
 

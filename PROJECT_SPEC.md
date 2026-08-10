@@ -123,8 +123,13 @@ The frozen pre-outcome accounting is:
 
 The pinned tokenizer preflight builds a train-derived vocabulary of 111 labels,
 including `O` and continuation closure, with no development or test label
-absent from it. These values are in-memory audit and model-input preflight
-counts, not prepared files, training evidence, or model accuracy.
+absent from it. Private ignored preparation at implementation commit
+`9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42` reproduces these values with
+prepared-data fingerprint
+`2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+The split and provenance digests are recorded in
+[reports/ewt_preparation.md](reports/ewt_preparation.md). These are preparation
+and pre-outcome evidence, not training evidence or model accuracy.
 
 The [EWT gate](docs/datasets/ewt_propbank_gate.md) keeps raw sources,
 reconstructed text, prepared data, and future weights ignored and private.
@@ -179,7 +184,7 @@ injected runtimes:
   whose SHA-256 is verified before load;
 - pinned PropBank/UD EWT source verification, inferred cross-release joining,
   primary-`V` predicate anchoring, official splits, conflict/leakage controls,
-  aggregate audit, and optional ignored preparation boundary;
+  aggregate audit, and ignored private preparation/provenance boundary;
 - aggregate-only private source-review evidence covering 13/13 anchor
   divergences, the one width mismatch, and 30/30 deterministic aligned records;
 - AdamW training, deterministic batches, gradient clipping, linear warmup
@@ -187,7 +192,10 @@ injected runtimes:
   best-state reload, and one test evaluation per run;
 - exactly three paired signal/no-signal seeds, with paired configurations
   required to differ only by variant and paired initial states required to have
-  the same fingerprint; and
+  the same fingerprint;
+- frozen paired EWT configurations bound to the prepared fingerprint, plus a
+  passing actual-data MPS preflight for one full batch-32 forward/backward,
+  gradient-clipping, AdamW, and scheduler step at longest retained sequence 118;
 - a strict training CLI that validates both configs, the prepared-data
   fingerprint, a new Git-ignored output location, and an exact Git revision;
   stages all six runs, records non-sensitive partial-failure state, retains a
@@ -205,8 +213,9 @@ injected runtimes:
   memory, checkpoint size, hardware, and package revisions without serializing
   examples, IDs, paths, or raw timing samples.
 
-This software completeness is not empirical validation. The concrete
-PyTorch/Transformers path has not been run on a prepared EWT dataset.
+This software completeness and the single actual-data optimizer-step preflight
+are not model validation. The paired six-run PyTorch/Transformers study has not
+been run on the prepared EWT dataset.
 
 ## Hypotheses
 
@@ -229,18 +238,25 @@ PyTorch/Transformers path has not been run on a prepared EWT dataset.
 
 ### E1 — private EWT preparation and verification
 
-- Reproduce the passing aggregate audit from the two pinned public checkouts.
-- Write prepared JSONL only to ignored local storage.
-- Require the prepared counts, exclusions, train-derived label inventory, and
-  zero unseen development/test labels to match the frozen preflight.
-- Record the resulting dataset fingerprint without publishing corpus content.
+- Completed from the two pinned public checkouts using adapter implementation
+  commit `9b7c94ec9be4a9b56c3cd7df3cb9a83b34b87f42`.
+- Prepared JSONL, manifest, and provenance remain only in ignored local storage.
+- Counts, exclusions, the 111-label train-derived inventory, and zero unseen
+  development/test labels match the frozen preflight.
+- The prepared fingerprint is
+  `2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
 
 ### E2 — public neural reproduction
 
 - Pin exact model and tokenizer repository revisions.
-- Use the original anchor of batch size 32, learning rate `1e-5`, two epochs,
-  AdamW, full fine-tuning, and constant learning rate unless a pre-training
-  hardware check requires a documented change.
+- Use `configs/ewt_predicate_signal.toml` and
+  `configs/ewt_no_predicate_signal.toml`, whose canonical digests are
+  `9bf8cd7c7a839bd9bfb6b39fde616f7e6f42d2ef163ea5f47b7afeeee1120bdc`
+  and `19ff94ff8bf839ee2fd5ebdab8ffed24b1ad7b243cc413a2ba687262f8f9d866`.
+- Use the frozen batch size 32, learning rate `1e-5`, two epochs, AdamW, full
+  fine-tuning, and constant learning rate.
+- Treat the passing actual-data MPS step at longest retained sequence 118,
+  111 labels, and batch size 32 as a fit preflight only, not a training result.
 - Run exactly three fixed seeds after the protocol is frozen.
 - Select each seed's checkpoint using development argument F1 or development
   loss, as declared in the configuration.
@@ -315,15 +331,19 @@ data remain outside Git; and the documentation preserves the supplied-predicate
 versus raw-text distinction. Those deliverables are present in the current
 branch.
 
+### Completed pre-outcome evidence
+
+- Ignored EWT preparation reproduces every frozen gate count at fingerprint
+  `2eb2f0e20bfa5e3521faba9521b329a0c43dcc63eb523a359e79337c04b66e1b`.
+- The 111-label training-derived vocabulary and both paired configuration
+  digests are frozen.
+- The pinned real PyTorch/Transformers predicate variant completed one full
+  prepared-data batch-32 optimizer step on MPS.
+
 ### Remaining evidence milestone
 
 The research project is **not** complete until all of the following occur:
 
-- ignored EWT prepared data are generated and reproduce every frozen gate count;
-- the prepared fingerprint and training-derived label vocabulary are frozen for
-  the experiment;
-- the pinned real PyTorch/Transformers model completes a prepared-corpus smoke
-  run;
 - all three paired seeds complete for both variants;
 - development, test, per-role, error, overlength, and repair results are
   reported without selecting the best seed;
