@@ -3,8 +3,10 @@
 ## Current disposition
 
 No raw or prepared research dataset is committed to this repository. No corpus
-has been prepared for model input, no neural training has run, no model-quality
-result exists, and no checkpoint exists.
+has been prepared for model input, no research-corpus training has run, no
+model-quality result exists, and no research checkpoint exists. A separate
+Git-ignored rehearsal used only invented examples to validate training and
+checkpoint software; it creates no corpus-use claim.
 
 The repository includes independently written code, synthetic fixtures,
 corpus-free split assignments, archive fingerprints, and non-reconstructive

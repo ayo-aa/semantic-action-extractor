@@ -6,11 +6,14 @@ The repository contains two separate components:
 
 1. `rule-based-v0`, a runnable, dependency-free action-extraction baseline; and
 2. `bert-srl-token-type`, implemented software for a predicate-conditioned BERT
-   semantic-role model and paired ablation, with no trained weights.
+   semantic-role model and paired ablation, with no repository-tracked or
+   research-trained weights.
 
-No prepared research data, neural training run, model-quality result, or
-checkpoint exists. This model card therefore describes an intended experiment
-and implemented software boundary, not a released model.
+No prepared research data, research-corpus training run, model-quality result,
+or research checkpoint exists. A complete local rehearsal did train six
+Git-ignored checkpoints on invented data, verify and reload them, and benchmark
+one checkpoint per variant. This model card therefore describes an intended
+experiment and implemented software boundary, not a released model.
 
 ## `rule-based-v0`
 
@@ -80,19 +83,22 @@ explicit identifiers and counts.
 | Development-only checkpoint selection and one final test evaluation | Implemented |
 | Three-seed paired predicate/no-predicate experiment aggregation | Implemented |
 | Strict paired training CLI with ignored-output and exact-Git-revision checks | Implemented |
-| Validated-checkpoint systems benchmark CLI and aggregate-only contract | Implemented; real measurements not run |
-| Real PyTorch/Transformers smoke run | Passed on synthetic input |
+| Validated-checkpoint systems benchmark CLI and aggregate-only contract | Implemented; both synthetic checkpoint variants completed it |
+| Full paired PyTorch/Transformers runtime rehearsal | Six invented-data seed/variant runs passed on Apple MPS |
 | Authorized prepared training data | None |
-| Public training/evaluation | Not run |
-| Checkpoint | None |
+| Research training/evaluation | Not run |
+| Research checkpoint | None |
 
-The implementation is exercised by synthetic tests and injected runtimes. A
-separate synthetic forward-and-backward smoke run loaded
+The implementation is exercised by synthetic tests, injected runtimes, and a
+full optional-library rehearsal. Six paired runs loaded
 `google-bert/bert-base-uncased` at revision
-`86b5e0934494bd15c9632b12f734a8a67f723594`, produced finite loss, and
-completed on Apple MPS with PyTorch 2.13.0 and Transformers 5.14.1. This validates the
-real optional-library model boundary only; it is not corpus training, an
-accuracy result, or evidence of operational fitness.
+`86b5e0934494bd15c9632b12f734a8a67f723594`, optimized and checkpointed it,
+verified and reloaded every checkpoint, published the paired result, and ran
+the benchmark command against one checkpoint per variant on Apple MPS with
+PyTorch 2.13.0 and Transformers 5.14.1. See the
+[runtime record](reports/neural_runtime_smoke.md). This validates the execution
+boundary only; it is not research-corpus training, an accuracy result, or
+evidence of operational fitness.
 
 ### Training data status
 
@@ -194,9 +200,10 @@ claim.
 
 ### Checkpoint and release status
 
-There is no checkpoint. The checkpoint code refuses incompatible metadata,
-configuration, labels, or a changed state-dictionary hash; that integrity
-contract does not grant redistribution rights.
+There is no research checkpoint. Git-ignored synthetic rehearsal checkpoints
+were created only to validate the round trip. The checkpoint code refuses
+incompatible metadata, configuration, labels, or a changed state-dictionary
+hash; that integrity contract does not grant redistribution rights.
 
 Checkpoint redistribution remains on hold until the then-current TalkBank and
 source-corpus terms, intended use, encoder license, privacy and memorization
@@ -205,6 +212,8 @@ all received an affirmative written review.
 
 ## Results statement
 
-No development score, test score, ablation effect, error-analysis result,
-systems benchmark, operational-readiness claim, or redistributable checkpoint
-is available. The values in the BabySRL audit are data-conversion counts only.
+No research development score, test score, ablation effect, error-analysis
+result, systems benchmark, operational-readiness claim, or redistributable
+checkpoint is available. The values in the BabySRL audit are data-conversion
+counts only; synthetic rehearsal metrics are intentionally not reported as
+model results.

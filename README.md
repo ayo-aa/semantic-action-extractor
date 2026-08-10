@@ -15,8 +15,11 @@ evaluation, run provenance, integrity-checked checkpoints, and a paired
 three-seed training engine and command-line runner with constant learning rate
 after optional warmup.
 
-It does **not** contain a prepared research dataset, trained checkpoint, or
-model-quality result. MASC was rejected. BabySRL passed the technical
+It does **not** contain a prepared research dataset, research-trained
+checkpoint, or model-quality result. A complete six-run rehearsal on invented
+data passed locally on Apple MPS, including checkpoint reload and aggregate
+benchmark execution; those synthetic artifacts and scores are not portfolio
+results. MASC was rejected. BabySRL passed the technical
 representability gate, but TalkBank registration/current-rules acceptance and
 an authorized manual conversion sample remain on hold. Access confirmation is
 required before provisional ignored preparation; training additionally
@@ -86,9 +89,9 @@ flowchart LR
     G --> C
     C --> H["Training-only labels, WordPiece alignment,<br/>batching and explicit predicate signal"]
     H --> I["Pinned BERT plus linear token head"]
-    I --> J["Paired three-seed trainer and CLI<br/>implemented; not executed"]
+    I --> J["Paired three-seed trainer and CLI<br/>synthetic rehearsal passed"]
     J --> K["First-subword collapse and exact<br/>argument, role, token and predicate metrics"]
-    J --> L["Integrity-checked checkpoint bundle<br/>software implemented; no checkpoint"]
+    J --> L["Integrity-checked checkpoint bundle<br/>synthetic round trip passed; no research checkpoint"]
 ```
 
 Implemented software and current evidence are intentionally distinguished:
@@ -97,12 +100,12 @@ Implemented software and current evidence are intentionally distinguished:
 | --- | --- | --- |
 | Rule action extractor | API and CLI implemented | No corpus-quality or systems benchmark |
 | Prepared dataset contract | Canonical three-split JSONL, manifest fingerprints, exact duplicate/leakage checks | No prepared BabySRL files written |
-| Label and alignment boundary | Train-only immutable vocabulary, BIO/WordPiece alignment, first-subword collapse | Synthetic tests only |
-| Model boundary | Full-fine-tuning BERT plus linear head; model and tokenizer revisions must be pinned by experiment config | Synthetic pinned-model forward/backward smoke passed on MPS; no corpus training run |
+| Label and alignment boundary | Train-only immutable vocabulary, BIO/WordPiece alignment, first-subword collapse | Synthetic tests and invented-data rehearsal passed |
+| Model boundary | Full-fine-tuning BERT plus linear head; model and tokenizer revisions must be pinned by experiment config | Six-run invented-data rehearsal passed on MPS; no research-corpus training run |
 | Evaluation | Exact micro argument span P/R/F1, per-role metrics, token accuracy, and supplied-predicate diagnostics | No development or test score |
-| Training and ablation | Paired three-seed engine and strict CLI; constant LR after warmup | Not executed |
-| Systems measurement | Canonical aggregate p50/p95, throughput, peak-memory, and checkpoint-size contract with private injected runner | No trained checkpoint to benchmark |
-| Provenance and checkpoints | Canonical configuration/run metadata and SHA-256 validation of serialized state | No checkpoint exists; redistribution remains on hold |
+| Training and ablation | Paired three-seed engine and strict CLI; constant LR after warmup | All six seed/variant runs completed on invented data; research experiment not run |
+| Systems measurement | Canonical aggregate p50/p95, throughput, peak-memory, and checkpoint-size contract | Both invented-data variant checkpoints completed the real benchmark path; no research measurements |
+| Provenance and checkpoints | Canonical configuration/run metadata and SHA-256 validation of serialized state | Synthetic checkpoint save/verify/reload passed; no research checkpoint and redistribution remains on hold |
 
 ## Data reconciliation
 
@@ -149,9 +152,10 @@ This is a structural feasibility result, not permission and not model quality.
 The [CHILDES access page](https://talkbank.org/childes/access.html) and current
 [TalkBank ground rules](https://talkbank.org/0share/rules.html) govern access
 and use. Registration/rules acceptance and an authorized privacy-preserving
-manual sample are still required. No prepared data, training run, result, or
-checkpoint exists. Once access is confirmed, a provisional ignored prepared
-dataset may be created solely so the private raw-versus-BIO review can run;
+manual sample are still required. No prepared BabySRL data, research training
+run, research result, or research checkpoint exists. Once access is confirmed,
+a provisional ignored prepared dataset may be created solely so the private
+raw-versus-BIO review can run;
 training remains blocked until that review passes. Checkpoint redistribution
 is a separate hold. CourseWorks and Columbia course data are not used in this
 project.
@@ -175,9 +179,9 @@ separate future evaluations. Token accuracy is diagnostic because frequent
 | --- | --- | --- |
 | E0 — rule baseline | Runnable, source-grounded product interface and predicate proposer | Software implemented; quality and systems results pending |
 | E1 — SRL/data foundation | Fixed BIO contract, data gates, adapter, splits, leakage controls, evaluation, provenance | Software and aggregate BabySRL audit implemented; access acceptance and manual sample on hold |
-| E2 — neural reproduction | Fine-tune the predicate-conditioned BERT model on the frozen prepared split | Not run; prepared data does not exist |
-| E3 — bounded ablation | Compare predicate signal with an otherwise identical no-signal run over three paired seeds | Engine and CLI implemented; experiments not run |
-| E4 — analysis | Report errors, latency, throughput, memory, artifact size, and limitations | Aggregate benchmark contract implemented; real measurements not run |
+| E2 — neural reproduction | Fine-tune the predicate-conditioned BERT model on the frozen prepared split | Invented-data runtime rehearsal passed; research run blocked on data gates |
+| E3 — bounded ablation | Compare predicate signal with an otherwise identical no-signal run over three paired seeds | Six-run invented-data rehearsal passed; research experiment not run |
+| E4 — analysis | Report errors, latency, throughput, memory, artifact size, and limitations | Both synthetic checkpoint variants completed aggregate benchmarking; research measurements not run |
 
 ## Scope and limitations
 
@@ -205,6 +209,8 @@ separate future evaluations. Token accuracy is diagnostic because frequent
   BabySRL pass and remaining holds.
 - [docs/datasets/babysrl_manual_review.md](docs/datasets/babysrl_manual_review.md)
   defines the private raw-versus-BIO review required before training.
+- [reports/neural_runtime_smoke.md](reports/neural_runtime_smoke.md) records the
+  six-run invented-data rehearsal without promoting synthetic scores.
 - [reports/results.md](reports/results.md) keeps future model results blank.
 - [reports/error_analysis.md](reports/error_analysis.md) preregisters analysis
   categories without claiming observations.

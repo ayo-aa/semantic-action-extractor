@@ -1,9 +1,10 @@
 # Results
 
-No neural model result is available. No prepared BabySRL dataset, training run,
-checkpoint, development score, test score, ablation effect, error analysis, or
-systems benchmark exists. The blank fields below are intentional and must not
-be filled with synthetic or historical course values.
+No research neural-model result is available. No prepared BabySRL dataset,
+research training run, research checkpoint, development score, test score,
+ablation effect, error analysis, or research systems benchmark exists. A full
+invented-data runtime rehearsal did complete, but the blank fields below are
+intentional and must not be filled with synthetic or historical course values.
 
 ## Software and data-feasibility evidence
 
@@ -11,8 +12,8 @@ be filled with synthetic or historical course values.
 | --- | --- | --- |
 | Dependency-free rule baseline | API and CLI implemented | Runnable product interface, not corpus quality |
 | SRL software foundation | Data, model, evaluation, provenance, checkpoint, paired engine, and strict CLI boundaries implemented | Tested invariants, not model behavior |
-| Real neural model smoke | BERT revision `86b5e0934494bd15c9632b12f734a8a67f723594` completed a synthetic forward/backward pass on Apple MPS with PyTorch 2.13.0 and Transformers 5.14.1; finite loss and expected logits shape | Optional-library compatibility, not corpus training or model quality |
-| Systems benchmark boundary | Canonical aggregate p50/p95 latency, batched throughput, peak-memory, checkpoint-size, hardware, and package schema implemented | Reporting contract only; no trained checkpoint was measured |
+| Full neural runtime rehearsal | Six BERT seed/variant runs completed on invented data at revision `86b5e0934494bd15c9632b12f734a8a67f723594`; every checkpoint was verified and reloaded and the paired result was published | Local optional-library and orchestration compatibility, not research-corpus training or model quality |
+| Checkpoint benchmark rehearsal | One invented-data checkpoint per variant completed fixed batch-1/batch-8 aggregate benchmarking on Apple MPS | Real benchmark execution, but no research systems measurement |
 | MASC feasibility | Rejected; optimistic exact-span ceiling below 99% | Negative dataset decision, not model performance |
 | BabySRL structural gate | 18,397 / 18,536 = 99.2501%; 139 fail-closed rejections | Annotation representability, not permission or model accuracy |
 | Frozen BabySRL eligibility | 13,713 train / 1,356 development / 1,274 test | In-memory split and leakage-policy accounting, not prepared files |
@@ -22,7 +23,9 @@ The 133-document assignment manifest has canonical SHA-256
 TalkBank registration/current-rules acceptance and an authorized manual sample
 remain on hold, so the eligible examples have not been written as prepared
 training data. See the [BabySRL audit](babysrl_audit.md) and
-[data-use record](../DATA_USAGE.md).
+[data-use record](../DATA_USAGE.md). The
+[neural runtime record](neural_runtime_smoke.md) documents the separate
+invented-data rehearsal and its non-claim boundary.
 
 ## Future supplied-predicate results
 

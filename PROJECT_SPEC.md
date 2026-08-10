@@ -135,8 +135,9 @@ These are in-memory audit counts, not prepared data. The
 authorized manual sample remain gating requirements. Registration and
 current-rules acceptance must be recorded before provisional ignored
 preparation. That prepared/raw pair is then the input to the private manual
-review; no training run, result, or checkpoint may be created until the review
-passes. Checkpoint redistribution requires a later, separate decision.
+review; no BabySRL research training run, result, or checkpoint may be created
+until the review passes. Checkpoint redistribution requires a later, separate
+decision.
 
 ## Target architecture
 

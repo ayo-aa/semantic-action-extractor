@@ -256,5 +256,6 @@ predicate-signal model and its no-signal ablation. The next action is the
 TalkBank registration and acceptance checkpoint. Once the user confirms it,
 the project may write provisional ignored prepared splits, create and complete
 the private raw-versus-BIO review, freeze the prepared fingerprint after a
-`pass`, and then start the controlled training run. No CourseWorks access is
-needed at any stage.
+`pass`, and then start the controlled research training run. The completed
+invented-data runtime rehearsal does not satisfy this gate. No CourseWorks
+access is needed at any stage.
