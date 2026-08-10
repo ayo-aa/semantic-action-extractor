@@ -7,9 +7,11 @@ surface passes only batch sizes and emits only canonical aggregate statistics;
 it never accepts or serializes example text, example identifiers, paths, or raw
 latency samples.
 
-A concrete ML runner can be added once the trained-checkpoint reload boundary
-is finalized.  Until then, deterministic injected runners exercise the complete
-aggregation and provenance contract without corpus or model access.
+The concrete command-line runner validates and reloads a pinned checkpoint,
+constructs deterministic retained-test batches, synchronizes device work, and
+supplies this dependency-free aggregation boundary.  Deterministic injected
+runners keep the contract independently testable without corpus or model
+access.
 """
 
 from __future__ import annotations

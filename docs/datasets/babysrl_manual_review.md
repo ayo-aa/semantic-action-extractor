@@ -1,6 +1,11 @@
 # BabySRL private manual-review workflow
 
-Status: **implemented and synthetically tested; not run on BabySRL**
+> **Superseded — fallback only (2026-08-10):** The no-registration EWT route
+> is the selected primary source. This workflow is retained only for a future,
+> explicit BabySRL fallback decision. Do not follow its commands or register for
+> BabySRL now.
+
+Status: **implemented historical fallback workflow; inactive while EWT is selected**
 
 The BabySRL structural audit establishes aggregate conversion coverage, but a
 manual check must verify that selected raw CHAT bracket cells were converted to

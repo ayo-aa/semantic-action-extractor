@@ -77,15 +77,17 @@ explicit identifiers and counts.
 | Token accuracy and supplied-predicate diagnostics | Implemented |
 | Strict experiment configuration and run provenance | Implemented |
 | SHA-256 integrity-checked checkpoint bundle | Implemented |
-| BabySRL archive adapter, structural audit, split freeze, and duplicate policy | Implemented |
-| Private prepared/raw manual-review workflow with aggregate-only decision | Implemented; not run on BabySRL |
+| Pinned PropBank/UD EWT adapter, aggregate gate, official splits, and duplicate/conflict policy | Implemented |
+| Public-source private review with aggregate-only evidence | All 13 predicate-anchor divergences, one token-width mismatch, and 30/30 deterministic aligned records inspected; no user account or review required |
+| BabySRL adapter and structural audit | Implemented historical fallback; not the active data path |
 | AdamW training with optional linear warmup then constant LR | Implemented |
 | Development-only checkpoint selection and one final test evaluation | Implemented |
 | Three-seed paired predicate/no-predicate experiment aggregation | Implemented |
 | Strict paired training CLI with ignored-output and exact-Git-revision checks | Implemented |
+| Exact-match interruption recovery and per-output nonblocking lock | Implemented and independently durability-reviewed with injected failures and adversarial artifacts |
 | Validated-checkpoint systems benchmark CLI and aggregate-only contract | Implemented; both synthetic checkpoint variants completed it |
 | Full paired PyTorch/Transformers runtime rehearsal | Six invented-data seed/variant runs passed on Apple MPS |
-| Authorized prepared training data | None |
+| Prepared EWT training data | None |
 | Research training/evaluation | Not run |
 | Research checkpoint | None |
 
@@ -102,26 +104,34 @@ evidence of operational fitness.
 
 ### Training data status
 
-Universal Proposition Bank English EWT and MASC PropBank were rejected for the
-fixed full-span target. MASC's trace-only arguments keep optimistic exact-span
-conversion below the predeclared 99% threshold.
+Universal Proposition Bank 1.0 English EWT was rejected as a label source
+because it projects roles to dependency heads. MASC remains rejected because
+trace-only arguments keep optimistic exact-span conversion below the
+predeclared 99% threshold.
 
-[BabySRL](https://talkbank.org/childes/access/Derived/BabySRL.html) is the
-technical replacement candidate. Its
-[annotation format](https://cogcomp.seas.upenn.edu/Data/BabySRL.html) matches
-the overt verbal span target. The pinned adapter losslessly converts 18,397 of
-18,536 declared propositions, or 99.2501%, and freezes 13,713/1,356/1,274
-eligible train/development/test examples after duplicate controls. The
-133-document assignment manifest SHA-256 is
-`73ecae9f81d1d2b9f8495b13b297da9c3d24e387630e71a38ef2420d4c9a5de7`.
+The selected route instead pairs pinned [PropBank EWT gold skeletons](https://github.com/propbank/propbank-release/tree/4abade0b53ce4a181e1d98b3518101c1a44d395a/data/google/ewt)
+with pinned [UD English EWT r2.2 words](https://github.com/UniversalDependencies/UD_English-EWT/tree/6e064999a75b9c941c515ce1be98352e6f9831e0).
+The adapter and aggregate source gate are implemented. The corrected audit
+finds 38,639 structurally valid verbal predicates and 38,635 word-aligned
+instances. The
+[aggregate-only private source review](reports/ewt_private_source_review.md)
+inspected all 13 predicate-anchor divergences, the one token-width mismatch,
+and 30/30 deterministically selected aligned verbal records. Leakage,
+identical-input conflict, and evaluation-deduplication controls leave
+31,101/3,775/3,610 train/development/test examples eligible for preparation. At
+`max_length=128`, 62 train examples are overlength, leaving
+31,039/3,775/3,610 modeled examples. The pinned tokenizer preflight builds a
+train-derived vocabulary of 111 labels, including `O` and continuation closure,
+and finds no development or test label outside it.
 
-Those are aggregate feasibility counts, not prepared files and not training
-evidence. The [CHILDES access requirements](https://talkbank.org/childes/access.html),
-current [TalkBank ground rules](https://talkbank.org/0share/rules.html), and an
-authorized privacy-preserving manual sample remain on hold. Registration and
-rules acceptance must precede provisional ignored preparation; the resulting
-prepared/raw pair must pass private review before training. CourseWorks and
-Columbia course data are not used.
+These are aggregate feasibility counts, not prepared files and not training
+evidence. The public Git sources require no account, registration, CourseWorks
+login, LDC download, or user-provided file. The join is a validated inferred
+cross-release reconstruction, not PropBank's prescribed LDC mapping. Raw and
+prepared text and future weights remain ignored and private; public artifacts
+are limited to source-neutral code and non-reconstructive aggregate metrics
+pending a separate weights review. BabySRL's earlier 99.2501% structural audit
+is retained only as fallback evidence.
 
 ### Planned training protocol
 
@@ -138,14 +148,25 @@ The fixed experiment contract requires:
 
 The original anchor is batch size 32, learning rate `1e-5`, and two epochs.
 Those values are not yet a runnable checked-in neural configuration because an
-authorized prepared-data fingerprint does not exist. Any hardware-driven change
-must be declared before final outcomes.
+EWT prepared-data fingerprint does not exist. Any hardware-driven change must
+be declared before final outcomes.
 
 The installed `semantic-action-train-srl` command accepts the two strict paired
 configs, prepared dataset, new Git-ignored output root, and exact 40-character
 Git revision. It validates the data fingerprint before execution, stages all
 six seed/variant runs, records a non-sensitive partial failure marker if needed,
-and atomically publishes canonical results only after all runs complete.
+retains a canonical complete journal, and atomically publishes canonical
+results only after all runs complete. A per-output nonblocking lock prevents
+two processes from writing the same run.
+
+An interrupted study is resumed by rerunning the same command with only
+`--resume` added. Resume requires identical partial-output, provenance,
+configuration, prepared-data and fingerprint, Git-revision, and runtime
+identity. It revalidates every completed result/checkpoint pair and paired seed
+before reuse. Recovery is limited to exact writer-owned interrupted atomic
+writes, next-checkpoint staging, and checkpoint-tombstone cleanup; lookalikes
+and unknown artifacts are rejected. These are verified software durability
+semantics, not evidence of EWT preparation, research training, or model quality.
 
 ### Evaluation contract
 
@@ -168,14 +189,14 @@ claim.
 
 - controlled research on supplied-predicate English SRL;
 - a bounded predicate-conditioning ablation;
-- source-grounded role extraction with human review after authorized training;
+- source-grounded role extraction with human review after completed training;
 - a downstream component after independently measured predicate discovery.
 
 ### Out-of-scope and prohibited interpretations
 
 - treating `ARG0` and `ARG1` as universal actor and patient labels;
 - claiming performance on raw text from a supplied-predicate result;
-- assuming child-directed parental speech represents operational domains;
+- assuming EWT's web genres represent operational domains;
 - multilingual or cross-domain use without separate evaluation;
 - autonomous decisions in consequential settings; and
 - processing sensitive text without application-level privacy controls.
@@ -189,8 +210,8 @@ claim.
 - **Role overinterpretation:** preserve PropBank labels before any convenience
   action mapping.
 - **Predicate assumption:** keep controlled and raw-text metrics separate.
-- **Domain shift:** require representative authorized evaluation before any use
-  claim outside BabySRL's child-directed-speech domain.
+- **Domain shift:** require representative evaluation before any use claim
+  outside EWT's web-text domains.
 - **Reproducibility:** bind each run to data/config/Git fingerprints, package and
   hardware metadata, seeds, devices, counts, and initial model state.
 - **Checkpoint integrity:** save labels and canonical metadata beside a state
@@ -205,15 +226,15 @@ were created only to validate the round trip. The checkpoint code refuses
 incompatible metadata, configuration, labels, or a changed state-dictionary
 hash; that integrity contract does not grant redistribution rights.
 
-Checkpoint redistribution remains on hold until the then-current TalkBank and
-source-corpus terms, intended use, encoder license, privacy and memorization
-risks, required attribution, checkpoint license, and distribution channel have
-all received an affirmative written review.
+Checkpoint redistribution remains on hold until the pinned PropBank and UD EWT
+terms and underlying-text notices, intended use, encoder license, privacy and
+memorization risks, required attribution, checkpoint license, and distribution
+channel have all received an affirmative written review.
 
 ## Results statement
 
 No research development score, test score, ablation effect, error-analysis
 result, systems benchmark, operational-readiness claim, or redistributable
-checkpoint is available. The values in the BabySRL audit are data-conversion
-counts only; synthetic rehearsal metrics are intentionally not reported as
-model results.
+checkpoint is available. The values in the EWT audit are data-conversion and
+preflight counts only; synthetic rehearsal metrics are intentionally not
+reported as model results.

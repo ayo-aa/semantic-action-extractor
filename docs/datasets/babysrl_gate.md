@@ -1,6 +1,12 @@
 # BabySRL feasibility and access gate
 
-Status: **technical GO for the fixed span-SRL contract; data use and training HOLD**
+> **Superseded — fallback only (2026-08-10):** The no-registration EWT route
+> is the selected primary source. The registration, preparation, manual-review,
+> and training gates below are historical or conditional, not current user
+> actions. Do not register for BabySRL unless this fallback is explicitly
+> reactivated.
+
+Status: **superseded as active path; preserved technical pass and conditional fallback controls**
 
 Decision date: 2026-08-10
 

@@ -4,28 +4,37 @@ No corpus-level model error analysis has been performed. The neural categories
 below are preregistered; they are not observed findings. No corpus excerpt,
 paraphrase, or derived example is included.
 
-## BabySRL conversion accounting
+## EWT preparation accounting
 
-The only current corpus-backed failure counts describe structural conversion,
-not model predictions:
+The current corpus-backed counts describe source conversion and frozen
+pre-outcome controls, not model predictions:
 
-| Terminal conversion reason | Proposition columns |
+| Stage or exclusion | Examples |
 | --- | ---: |
-| `row_width_mismatch` | 4 |
-| `invalid_bracket_sequence` | 15 |
-| `missing_relation_span` | 99 |
-| `ambiguous_predicate_head` | 5 |
-| `unsupported_role_label` | 16 |
-| **Rejected** | **139** |
+| All PropBank predicate columns | 50,262 |
+| Nonverbal predicate columns excluded | 11,623 |
+| Structurally valid verbal predicates | 38,639 |
+| Token-width mismatch excluded | 4 |
+| Word-aligned predicates | 38,635 |
+| Cross-split duplicate-text examples excluded | 76 |
+| Identical-input conflicting examples excluded | 31 |
+| Repeated development/test semantics removed | 42 |
+| Prepared eligible | 38,486 |
+| Train examples over `max_length=128` | 62 |
+| Modeled examples | 38,424 |
 
-Accepted 18,397 plus rejected 139 reconciles exactly to 18,536 declared
-propositions, for 99.2501% structural coverage. A proposition with any failed
-role is rejected in full; the adapter does not keep easy roles and relabel the
-failure `O`.
+The prepared-eligible split is 31,101 train, 3,775 development, and 3,610 test;
+the modeled split is 31,039/3,775/3,610. Nonconflicting train frequency is
+preserved, while exact repeated semantics receive no extra evaluation weight.
+The pinned tokenizer preflight builds 111 train-derived labels, including `O`
+and continuation closure, with no development or test label outside train.
 
-The authorized manual conversion sample remains on hold pending TalkBank
-registration and recorded acceptance of the current ground rules. Accordingly,
-the structural pass is not yet a human validation claim.
+The [aggregate-only private source review](ewt_private_source_review.md)
+inspected all 13 predicate-anchor divergences, the one token-width mismatch,
+and 30/30 deterministically selected aligned verbal records. It requires no
+account, registration, or user manual review. This is a validated inferred
+PropBank-skeleton/UD-word join, not the official LDC mapping, and no prepared
+data or training run exists yet.
 
 ## Rule-baseline taxonomy
 
@@ -85,10 +94,10 @@ Raw-text failures must never be merged into supplied-predicate role metrics.
 For every future analysis, report the exact data and configuration fingerprints,
 seed and variant, checkpoint-selection rule, denominator, counts, role support,
 overlength and BIO-repair totals, and whether the category was assigned
-automatically or by authorized review. Keep preparation, rule-baseline,
+automatically or by private review. Keep preparation, rule-baseline,
 supplied-predicate, and raw-text tables separate.
 
-Authorized review may inspect source context under the governing access rules,
+Private review may inspect source context under the governing source terms,
 but public reports must use counts, taxonomies, and independently invented
 illustrations only. Blank findings must remain blank; historical course output
 and synthetic predictions are not substitutes for an executed experiment.

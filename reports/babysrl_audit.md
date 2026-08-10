@@ -1,6 +1,11 @@
 # BabySRL archive and annotation-fit audit
 
-Status: **technical PASS; data preparation and training remain on HOLD**
+> **Superseded — fallback only (2026-08-10):** The no-registration EWT route
+> is the selected primary source. Statements below that block preparation or
+> training apply only if BabySRL is explicitly reactivated. No registration or
+> BabySRL action is currently required.
+
+Status: **superseded as active path; preserved technical pass and conditional fallback controls**
 
 Audit date: 2026-08-10
 

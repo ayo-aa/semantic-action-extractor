@@ -1,6 +1,6 @@
 # MASC PropBank feasibility gate
 
-Status: **MASC rejected for the fixed milestone; replacement-source decision pending**
+Status: **MASC rejected for the fixed milestone; EWT PropBank plus pinned UD EWT selected, with BabySRL retained only as a fallback**
 
 Decision date: 2026-08-09
 
@@ -31,6 +31,8 @@ With explicit approval, the archive was fetched from ANC's artifact URL into ign
 | --- | --- | --- | --- |
 | UP 1.0 English EWT | Dependency heads only; exact gold spans cannot be recovered | Public, but layered lineage and license signals require care | Reject for this milestone |
 | MASC-PROPBANK-ORIG | Original PropBank constituent pointers, but too many trace-only arguments lack unique overt spans | MASC is advertised under CC BY 3.0 US; the provisional diagnostic manifest did not complete item-level attribution | Reject for this milestone |
+| PropBank EWT gold skeletons + UD English EWT r2.2 words | Direct PropBank span columns pass the structural gate; the inferred join aligns 38,635 verbal predicates after one fail-closed sentence exclusion | Public, no-registration access; raw/prepared text and weights remain private under the EWT gate's conservative publication boundary | Selected primary path; see the [EWT gate](ewt_propbank_gate.md) |
+| BabySRL | Overt PropBank-style verbal spans pass the fixed 99% representability gate | Registration, current-rules acceptance, private manual review, and checkpoint-release review remain separate gates | Fallback only; no registration is needed while EWT remains viable |
 | OntoNotes / CoNLL-2012 | Strong task match | Source text requires LDC access and redistribution is restricted | Do not use for the public portfolio reproduction |
 | CoNLL-2005 | Closest classic span-SRL benchmark | Depends on licensed Treebank material and is not a clean redistributable portfolio source | Do not use for the public portfolio reproduction |
 
@@ -126,7 +128,10 @@ The manifest must record document ID, genre, split, source checksum, and eligibl
 
 Pass condition: document overlap and duplicate-text checks are zero, and each viable genre is represented without breaking document boundaries.
 
-## Repository boundary during the hold
+## MASC-only repository boundary
+
+The restrictions below apply only to the rejected MASC route. They do not
+block selected EWT preparation or training under the EWT gate.
 
 Allowed now:
 
@@ -135,7 +140,7 @@ Allowed now:
 - source-neutral PropBank/PTB parsing and fail-closed conversion code;
 - the read-only aggregate MASC audit and this negative feasibility result.
 
-Not allowed yet:
+Not allowed for MASC under this milestone:
 
 - vendoring raw or processed MASC data;
 - building a MASC preparation adapter, split, or dataset-derived fixtures;
@@ -145,4 +150,11 @@ Not allowed yet:
 
 ## Next checkpoint
 
-MASC reconciliation is complete. The next checkpoint is a replacement-source decision: retain exact span SRL and review another direct-span corpus, accept controlled-access data and its publication constraints, or explicitly change the research target to dependency-head SRL. No option is selected yet, and training remains blocked until a new source passes its own gate.
+MASC reconciliation is complete and remains closed. The no-registration
+[EWT PropBank gate](ewt_propbank_gate.md) is now the selected primary route;
+BabySRL is a fallback only. The pinned EWT adapter and aggregate gate pass. The
+[aggregate-only private source review](../../reports/ewt_private_source_review.md)
+inspected all 13 predicate-anchor divergences, the one token-width mismatch,
+and 30/30 deterministically selected aligned verbal records. The next
+checkpoint is the first ignored EWT preparation, followed by frozen experiment
+configurations and training. No MASC corpus work is needed.

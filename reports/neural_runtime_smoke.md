@@ -4,9 +4,9 @@ Status: **PASS on invented synthetic data only; no research result**
 
 On 2026-08-09, the complete paired neural path was exercised at Git revision
 `3d93c10ac3d92b0695326f0816a5fadaa05fa5c8`. The rehearsal used 14 invented
-examples (4 train, 2 development, and 8 test) with no BabySRL, CourseWorks, or
-other corpus content. All inputs, configurations, checkpoints, and result files
-remain Git-ignored.
+examples (4 train, 2 development, and 8 test) with no EWT, BabySRL,
+CourseWorks, or other corpus content. All inputs, configurations, checkpoints,
+and result files remain Git-ignored.
 
 ## Frozen runtime
 
@@ -74,15 +74,40 @@ Synthetic latency, throughput, memory, checkpoint-size, and accuracy values are
 not portfolio results and are intentionally not copied into the public result
 tables.
 
+## Independent resume-durability review
+
+On 2026-08-10, the interruption-recovery boundary passed independent review
+with injected failures and adversarial filesystem artifacts. `--resume` accepts
+only the identical partial run: output and provenance, paired configuration
+digests, prepared dataset and fingerprint, exact Git revision, and runtime
+identity must all match. Every reusable result/checkpoint pair is revalidated,
+as is each completed predicate/no-predicate seed pair.
+
+The command retains a canonical complete journal and safely recovers only exact
+writer-owned interrupted atomic writes, next-checkpoint staging, and
+checkpoint-tombstone cleanup. Lookalike or unknown artifacts fail closed, and
+a per-output nonblocking lock rejects concurrent writers. Operationally, the
+recovery command is the original training command with only `--resume` added.
+
+This review used synthetic and injected test boundaries. It did not prepare
+EWT data, run the research experiment, produce a score, or create a research
+checkpoint.
+
 ## Interpretation and remaining gate
 
 The rehearsal validates the installed optional dependencies, local Apple-MPS
 execution, six-run orchestration, checkpoint round trip, paired aggregation,
-and systems-benchmark boundary. It also shows that Colab or Columbia compute is
-not required for the planned run.
+systems-benchmark boundary, and exact-match interruption recovery. It also
+shows that Colab or Columbia compute is not required for the planned run.
 
-It does **not** authorize corpus use or establish semantic-role performance.
-The research experiment remains blocked until TalkBank registration and
-current-rules acceptance are recorded, provisional BabySRL data is prepared
-outside Git, and the private raw-versus-BIO manual review returns `pass`. Only
-then may the two-epoch paired training run begin.
+It does **not** establish semantic-role performance. The selected EWT adapter
+and source gate pass using public pinned sources. The
+[aggregate-only private source review](ewt_private_source_review.md) inspected
+all 13 predicate-anchor divergences, the one token-width mismatch, and 30/30
+deterministically selected aligned verbal records; no account, registration,
+CourseWorks session, LDC download, or user manual review is required. The
+research experiment still awaits private ignored EWT preparation, a frozen
+data fingerprint and model configurations, and then the two-epoch paired
+training run. Raw/prepared text and trained weights remain private; public
+evidence is limited to code and non-reconstructive aggregates pending a
+separate weights review.

@@ -86,58 +86,52 @@ character spans additionally satisfy:
 source_text[start:end] == span_text
 ```
 
-## Data decision and frozen BabySRL contract
+## Data decision and frozen EWT contract
 
-[Universal Proposition Bank English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT)
-was rejected because dependency-head roles do not provide the full gold spans
-required here. [MASC PropBank](https://anc.org/data/masc/downloads/data-download/)
-was rejected because trace-only arguments place its optimistic exact-span
-ceiling below the predeclared 99% gate. Neither source was prepared or used for
-training.
+[Universal Proposition Bank 1.0 English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT)
+was rejected as the target because its dependency-head roles do not provide the
+full gold spans required here. That decision does not reject the underlying EWT
+source. [MASC PropBank](https://anc.org/data/masc/downloads/data-download/) was
+also rejected because trace-only arguments place its optimistic exact-span
+ceiling below the predeclared 99% gate.
 
-[BabySRL](https://talkbank.org/childes/access/Derived/BabySRL.html) is the
-replacement candidate. Its
-[documented CHAT annotation](https://cogcomp.seas.upenn.edu/Data/BabySRL.html)
-provides overt PropBank-style verbal role spans that fit the unchanged target.
-The pinned aggregate audit is a technical pass:
+The selected route joins the pinned [PropBank EWT gold skeletons](https://github.com/propbank/propbank-release/tree/4abade0b53ce4a181e1d98b3518101c1a44d395a/data/google/ewt)
+at commit `4abade0b53ce4a181e1d98b3518101c1a44d395a` to the words in
+[UD English EWT r2.2](https://github.com/UniversalDependencies/UD_English-EWT/tree/6e064999a75b9c941c515ce1be98352e6f9831e0)
+at commit `6e064999a75b9c941c515ce1be98352e6f9831e0`. The implemented adapter
+pins both revisions and relevant worktrees, joins normalized document identity
+and sentence position, validates role-column structure and token width, assigns
+the official PropBank document splits, and applies fail-closed leakage and
+ambiguity controls.
 
-| Gate quantity | Frozen value |
-| --- | ---: |
-| Documents | 133 |
-| Declared proposition columns | 18,536 |
-| Lossless conversions | 18,397 |
-| Fail-closed rejections | 139 |
-| Conversion coverage | 99.2501% |
+This is a validated inferred cross-release join, not the LDC-based mapping
+prescribed by PropBank. The
+[aggregate-only private source review](reports/ewt_private_source_review.md)
+inspected all 13 metadata-versus-primary predicate-anchor divergences, the one
+token-width mismatch, and 30/30 deterministically selected aligned verbal
+records. It requires no account, registration, CourseWorks login, LDC download,
+or user-supplied corpus file.
 
-The 139 rejections reconcile through exactly five terminal reasons:
-`row_width_mismatch` 4, `invalid_bracket_sequence` 15,
-`missing_relation_span` 99, `ambiguous_predicate_head` 5, and
-`unsupported_role_label` 16. One failed role rejects its entire proposition;
-no failed annotation becomes `O`.
+The frozen pre-outcome accounting is:
 
-The child-stratified document assignment was frozen before model outcomes. Its
-canonical manifest SHA-256 is
-`73ecae9f81d1d2b9f8495b13b297da9c3d24e387630e71a38ef2420d4c9a5de7`.
-After excluding every exact sentence sequence that crosses split boundaries
-and deduplicating identical semantic examples within development and test, the
-safe eligible counts are:
+| Stage | Train | Development | Test | Total |
+| --- | ---: | ---: | ---: | ---: |
+| Structurally valid verbal predicates | — | — | — | 38,639 |
+| Aligned after one token-width exclusion | 31,174 | 3,806 | 3,655 | 38,635 |
+| Prepared eligible after leakage, conflict, and eval deduplication | 31,101 | 3,775 | 3,610 | 38,486 |
+| Modeled at `max_length=128` | 31,039 | 3,775 | 3,610 | 38,424 |
 
-| Split | Eligible examples |
-| --- | ---: |
-| Train | 13,713 |
-| Development | 1,356 |
-| Test | 1,274 |
-| **Total** | **16,343** |
+The pinned tokenizer preflight builds a train-derived vocabulary of 111 labels,
+including `O` and continuation closure, with no development or test label
+absent from it. These values are in-memory audit and model-input preflight
+counts, not prepared files, training evidence, or model accuracy.
 
-These are in-memory audit counts, not prepared data. The
-[CHILDES access conditions](https://talkbank.org/childes/access.html), current
-[TalkBank ground rules](https://talkbank.org/0share/rules.html), and an
-authorized manual sample remain gating requirements. Registration and
-current-rules acceptance must be recorded before provisional ignored
-preparation. That prepared/raw pair is then the input to the private manual
-review; no BabySRL research training run, result, or checkpoint may be created
-until the review passes. Checkpoint redistribution requires a later, separate
-decision.
+The [EWT gate](docs/datasets/ewt_propbank_gate.md) keeps raw sources,
+reconstructed text, prepared data, and future weights ignored and private.
+Source-neutral code and non-reconstructive aggregate metrics may be public;
+checkpoint release remains a separate review. BabySRL's 99.2501% structural
+audit is preserved as historical fallback evidence, but its registration and
+manual-review gates are not active while the EWT route remains viable.
 
 ## Target architecture
 
@@ -183,10 +177,11 @@ injected runtimes:
   counts, drop statistics, and initial-state fingerprint;
 - atomic checkpoint bundles containing labels, metadata, and a state dictionary
   whose SHA-256 is verified before load;
-- BabySRL archive pinning, in-memory conversion audit, frozen split assignment,
-  duplicate controls, and optional ignored preparation boundary;
-- exact prepared/raw identity verification and deterministic private manual
-  sampling with aggregate-only pass/hold/fail output;
+- pinned PropBank/UD EWT source verification, inferred cross-release joining,
+  primary-`V` predicate anchoring, official splits, conflict/leakage controls,
+  aggregate audit, and optional ignored preparation boundary;
+- aggregate-only private source-review evidence covering 13/13 anchor
+  divergences, the one width mismatch, and 30/30 deterministic aligned records;
 - AdamW training, deterministic batches, gradient clipping, linear warmup
   followed by constant learning rate, development-only checkpoint selection,
   best-state reload, and one test evaluation per run;
@@ -195,15 +190,23 @@ injected runtimes:
   the same fingerprint; and
 - a strict training CLI that validates both configs, the prepared-data
   fingerprint, a new Git-ignored output location, and an exact Git revision;
-  stages all six runs, records non-sensitive partial-failure state, and
-  atomically publishes canonical paired results; and
+  stages all six runs, records non-sensitive partial-failure state, retains a
+  canonical complete journal, and atomically publishes canonical paired
+  results;
+- independently reviewed exact-match resume semantics: the same command plus
+  `--resume` must identify the same partial output, provenance, configs, data,
+  Git revision, and runtime; completed result/checkpoint and paired-seed
+  identities are revalidated; only exact interrupted atomic-write,
+  checkpoint-staging, and checkpoint-tombstone residue is recovered; unknown or
+  lookalike artifacts fail closed; and a per-output nonblocking lock excludes
+  concurrent writers; and
 - a validated-checkpoint systems benchmark CLI and canonical aggregate-only
   contract for p50/p95 latency, batched throughput, explicitly identified peak
   memory, checkpoint size, hardware, and package revisions without serializing
   examples, IDs, paths, or raw timing samples.
 
 This software completeness is not empirical validation. The concrete
-PyTorch/Transformers path has not been run on an authorized prepared dataset.
+PyTorch/Transformers path has not been run on a prepared EWT dataset.
 
 ## Hypotheses
 
@@ -224,14 +227,13 @@ PyTorch/Transformers path has not been run on an authorized prepared dataset.
 - Evaluate predicate-candidate recall and systems costs separately from neural
   supplied-predicate role labeling.
 
-### E1 — data authorization and manual verification
+### E1 — private EWT preparation and verification
 
-- Record TalkBank registration and acceptance of the then-current ground rules.
-- Write prepared JSONL only to ignored local or approved Columbia storage.
-- Verify exact prepared/raw identity and review an authorized,
-  privacy-preserving sample against the frozen converter.
-- Record the resulting dataset fingerprint and label inventory without
-  publishing corpus content.
+- Reproduce the passing aggregate audit from the two pinned public checkouts.
+- Write prepared JSONL only to ignored local storage.
+- Require the prepared counts, exclusions, train-derived label inventory, and
+  zero unseen development/test labels to match the frozen preflight.
+- Record the resulting dataset fingerprint without publishing corpus content.
 
 ### E2 — public neural reproduction
 
@@ -244,6 +246,8 @@ PyTorch/Transformers path has not been run on an authorized prepared dataset.
   loss, as declared in the configuration.
 - Reload the selected state and evaluate test exactly once per run.
 - Report mean and sample standard deviation, never only the strongest seed.
+- If interrupted, rerun the identical training command with only `--resume`
+  added; never edit, copy, or hand-reconcile the partial run.
 
 ### E3 — predicate-conditioning ablation
 
@@ -285,8 +289,12 @@ Secondary measures are:
 
 ## Experimental controls
 
-- The frozen 133-document assignment cannot change after outcomes are seen.
-- Exact text crossing split boundaries is excluded from every affected split.
+- The pinned PropBank official EWT document assignments cannot change after
+  outcomes are seen.
+- Exact text crossing split boundaries is excluded from every affected split;
+  conflicting identical inputs are excluded from every affected split; exact
+  evaluation semantics are deduplicated within development and test while
+  nonconflicting train frequency is preserved.
 - The vocabulary is learned from training examples only.
 - Test labels never select preprocessing, hyperparameters, or checkpoints.
 - Paired variants may differ only in the predicate-signal switch.
@@ -301,20 +309,21 @@ Secondary measures are:
 ### Completed software milestone
 
 The public code milestone is complete when the implemented boundaries above,
-the paired training command, and their synthetic tests pass; the MASC no-go and
-BabySRL structural pass reconcile exactly; raw/prepared data remain outside
-Git; and the documentation preserves the supplied-predicate versus raw-text
-distinction. Those deliverables are present in the current branch.
+the paired training command, and their synthetic tests pass; the MASC no-go,
+selected EWT gate, and BabySRL fallback status reconcile exactly; raw/prepared
+data remain outside Git; and the documentation preserves the supplied-predicate
+versus raw-text distinction. Those deliverables are present in the current
+branch.
 
 ### Remaining evidence milestone
 
 The research project is **not** complete until all of the following occur:
 
-- TalkBank registration and current-rules acceptance are recorded;
-- provisional ignored prepared data are generated;
-- an authorized manual conversion sample validates the prepared/raw mapping and
-  the prepared fingerprint is then frozen for the experiment;
-- the pinned real PyTorch/Transformers model completes a smoke run;
+- ignored EWT prepared data are generated and reproduce every frozen gate count;
+- the prepared fingerprint and training-derived label vocabulary are frozen for
+  the experiment;
+- the pinned real PyTorch/Transformers model completes a prepared-corpus smoke
+  run;
 - all three paired seeds complete for both variants;
 - development, test, per-role, error, overlength, and repair results are
   reported without selecting the best seed;
