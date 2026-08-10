@@ -144,6 +144,8 @@ For one predicate in context, the model performs:
 
 The implementation owns token-to-subword alignment, predicate encoding, span decoding, question-slot constraints, qualifier evidence grounding, source reconstruction, confidence calculation, checkpointing, and evaluation.
 
+QA-SRL and QANom do not provide complete mention-qualifier supervision, and the candidate pilot is reserved for guide development rather than training or model selection. Learned qualifier prediction is therefore blocked until a separate authorized training annotation source and protocol exist. Any future independently annotated challenge labels remain evaluation references and cannot fill that training-data role.
+
 The main BERT-family encoder supports the predecessor notebook’s token-type predicate indicator. A matched RoBERTa-family portability run tests marker and learned-feature conditioning without relying on segment embeddings.
 
 ### Generative comparison system
@@ -233,7 +235,7 @@ The declared verbal non-inferiority margin is one labeled-F1 point. Joint traini
 - Train or adapt verbal predicate and nominal eventivity classifiers.
 - Evaluate supplied-candidate classification separately from candidate generation.
 - Compare supplied-predicate extraction with the complete pipeline.
-- Predict predicate-local mention qualifiers and exact cue evidence as a separately reported stage.
+- Train and report predicate-local mention-qualifier and cue-evidence prediction only if a separate authorized training annotation source and protocol have been established; otherwise mark the learned stage unavailable and retain only the schema, scorer, and transparent rule-baseline diagnostics.
 - Attribute missed predicates, spurious predicates, duplicate frames, and lost downstream arguments to their originating stage.
 
 ### E7: Generalization, calibration, and efficiency
@@ -351,7 +353,7 @@ Aggregation rejects incomplete seed sets, mixed data revisions, unequal primary-
 - A bounded verbal raw-text vertical slice emits evidence-linked records and reports stage-specific errors and latency before the broader conditioning and joint-training studies conclude.
 - Conditioning and separate-versus-joint studies use matched data, compute, and paired seeds.
 - Candidate generation, predicate classification, supplied-predicate extraction, and complete-pipeline results remain separate.
-- Primary results report mention-qualifier label and exact-evidence quality without changing the two reference-compatible contracts.
+- Primary results report mention-qualifier label and exact-evidence quality without changing the two reference-compatible contracts only when the separately authorized training supervision and independent evaluation references exist; otherwise the learned qualifier result is explicitly unavailable.
 - Results include exact grounding, calibration, generalization, efficiency, error analysis, limitations, and negative findings.
 - Any released checkpoint has verified redistribution rights, a model card, checksums, and an inference example.
 - The CLI and Python API can select the rule or released neural backend through the versioned public schema.
