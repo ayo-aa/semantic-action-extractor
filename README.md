@@ -4,7 +4,7 @@
 
 This project turns short English text into source-grounded predicate–argument records. Its research core is the same task and architecture as Ayo Adetayo's original semantic-role-labeling homework: given a sentence and one supplied predicate, fine-tune BERT to assign word-level PropBank BIO labels such as `ARG0`, `ARG1`, and `ARGM-TMP`.
 
-The repository currently contains a runnable rule baseline and unit-tested SRL primitives for classic/modern PropBank record parsing, Penn Treebank pointer-to-BIO conversion, WordPiece/BIO alignment, BIO repair and decoding, generic micro exact labeled-span scoring, and construction of a predicate-conditioned BERT token classifier. MASC archive integration, word-level prediction collapse, the training and evaluation runner, a checkpoint, and corpus results are pending.
+The repository currently contains a runnable rule baseline and unit-tested SRL primitives for classic/modern PropBank record parsing, Penn Treebank pointer-to-BIO conversion, WordPiece/BIO alignment, BIO repair and decoding, generic micro exact labeled-span scoring, and construction of a predicate-conditioned BERT token classifier. It also contains a read-only aggregate MASC feasibility audit. MASC was rejected for the fixed gold-span milestone; replacement-source selection, word-level prediction collapse, the training and evaluation runner, a checkpoint, and corpus results are pending.
 
 ## Abstract
 
@@ -87,11 +87,16 @@ These primitives are a partial modular reimplementation, not a trained pipeline.
 
 [Universal Proposition Bank 1.0 English EWT](https://github.com/UniversalPropositions/UP-1.0/tree/master/UP_English-EWT) has been rejected for the restored BIO-span milestone. It supplies dependency-head arguments, not the gold argument spans required by this project's word-level target; the [UP 2.0 paper](https://aclanthology.org/2022.lrec-1.181/) explicitly identifies that limitation.
 
-The next feasibility candidate is the [88K-word MASC PropBank release](https://anc.org/data/masc/downloads/data-download/), which is advertised with original PropBank pointers and the Penn Treebank parses they reference. MASC is **not yet selected for training or downloaded**. A source-neutral, fail-closed pointer conversion core now exists with invented tests; MASC file discovery, joins, provenance allowlisting, coverage audit, and document-disjoint split protocol remain behind the recorded gate.
+The [88K-word MASC PropBank release](https://anc.org/data/masc/downloads/data-download/) was then acquired into ignored local storage for an approved, read-only feasibility audit. It is **rejected for this milestone**. Rights review produced only a provisional diagnostic manifest and did not complete item-level attribution, the join gate remains on hold, and two independent annotation-fit analyses place optimistic exact-span recovery below the predeclared 99% threshold. No MASC preparation adapter, split, training run, or checkpoint was created.
 
-The conversion core parses the documented classic and later English `.prop` record layouts, counts PTB empty terminals during pointer resolution, removes them only from the model-facing word sequence, preserves discontinuous pieces, treats `LINK-*` as metadata, retains the raw record and terminal-to-word map, and rejects an entire predicate instance when one gold role cannot be represented faithfully. It produces a validated unsplit record so document-level splits can be frozen later. `wsj_*` basenames are denied by default as a rights backstop; a future MASC adapter must add the stricter provenance-reviewed allowlist. Rejections carry stable reason codes so a corpus audit can reconcile every input row without turning failed arguments into false `O` labels.
+The conversion core parses the documented classic and later English `.prop` record layouts, counts PTB empty terminals during pointer resolution, removes them only from the model-facing word sequence, preserves discontinuous pieces, treats `LINK-*` as metadata, retains the raw record and terminal-to-word map, and rejects an entire predicate instance when one gold role cannot be represented faithfully. It produces a validated unsplit record so document-level splits can be frozen later. `wsj_*` basenames are denied by default as a rights backstop; any future corpus adapter must add a stricter provenance-reviewed allowlist. Rejections carry stable reason codes so a corpus audit can reconcile every input row without turning failed arguments into false `O` labels.
 
-No research corpus is downloaded or vendored by the current package. The decision record and pass/fail gate are documented in [DATA_USAGE.md](DATA_USAGE.md) and [docs/datasets/masc_propbank_gate.md](docs/datasets/masc_propbank_gate.md).
+The audit also records three deferred source-format gaps: two archive-specific
+PTB wrapper forms, mixed semicolon/trace-chain pointers, and a LINK anchoring
+rule that is too strict for observed MASC records. Those implementation gaps
+do not explain the no-go—the optimistic annotation ceiling still misses 99%.
+
+The package does not download or vendor a research corpus. The locally acquired MASC audit artifact remains under ignored `data/raw/` and is not required to install or run the package. The decision record, completed audit, and gate are documented in [DATA_USAGE.md](DATA_USAGE.md), [reports/masc_propbank_audit.md](reports/masc_propbank_audit.md), and [docs/datasets/masc_propbank_gate.md](docs/datasets/masc_propbank_gate.md).
 
 ## Evaluation contracts
 
@@ -113,7 +118,7 @@ Unit tests establish software behavior, not model accuracy. The earlier course r
 | Study | Purpose | Status |
 | --- | --- | --- |
 | E0 — Rule baseline | Establish a runnable product interface, exact source offsets, and candidate proposer | Baseline, API, and CLI implemented; corpus and latency evaluation pending |
-| E1 — SRL foundation | Restore BIO alignment, supplied-predicate conditioning, public-data selection, adaptation, and exact role scoring | In progress: source-neutral conversion and SRL primitives implemented; MASC acquisition audit and archive adapter pending |
+| E1 — SRL foundation | Restore BIO alignment, supplied-predicate conditioning, public-data selection, adaptation, and exact role scoring | In progress: source-neutral primitives implemented; MASC no-go recorded; replacement-source decision pending |
 | E2 — Public neural reproduction | Fine-tune the original BERT architecture on a frozen, predeclared public split and report multiple seeds | Not started |
 | E3 — Bounded analysis | Compare the original predicate signal with no signal, then report errors and systems costs | Not started |
 
@@ -122,7 +127,7 @@ E2 will not begin until E1 is reviewed. No public result, checkpoint, or benchma
 ## Scope and limitations
 
 - PropBank roles describe relationships relative to a predicate sense; they do not provide a universal actor/patient ontology.
-- MASC is a candidate, not an adopted dependency; no corpus-backed claim exists until its feasibility gate passes.
+- UP 1.0 EWT and MASC are rejected for the fixed span target; no replacement corpus or corpus-backed claim exists yet.
 - The controlled model assumes a supplied predicate. Raw-text candidate detection is a separate source of error.
 - The rule baseline is English-specific and works best on short active clauses.
 - The system does not resolve coreference, implicit arguments, intent, task ownership, completion state, or legal/business meaning.
@@ -135,11 +140,12 @@ E2 will not begin until E1 is reviewed. No public result, checkpoint, or benchma
 - [DATA_USAGE.md](DATA_USAGE.md) records data rights and the public-data boundary.
 - [MODEL_CARD.md](MODEL_CARD.md) documents current and planned model behavior.
 - [reports/results.md](reports/results.md) separates software evidence from empirical results.
+- [reports/masc_propbank_audit.md](reports/masc_propbank_audit.md) records the completed negative MASC feasibility result.
 - [reports/error_analysis.md](reports/error_analysis.md) defines the error-analysis taxonomy.
 
 ## License
 
-Original repository code is MIT licensed. That license does not apply automatically to datasets, pretrained models, or other third-party artifacts. If MASC is adopted, its license, attribution, source-text lineage, and any checkpoint obligations will remain separate.
+Original repository code is MIT licensed. That license does not apply automatically to datasets, pretrained models, or other third-party artifacts. The rejected MASC audit artifact remains untracked; any future corpus will require its own license, attribution, lineage, and checkpoint review.
 
 ## Run the project
 
@@ -174,6 +180,14 @@ Run the complete dependency-free test suite:
 
 ```bash
 PYTHONPATH=src python -m unittest discover -s tests -v
+```
+
+If the exact ignored MASC audit artifact is present locally, reproduce the
+aggregate no-go audit without writing member payloads outside the ZIP:
+
+```bash
+PYTHONPATH=src python -m semantic_action_extractor.srl.masc_audit \
+  data/raw/Propbank-original-format.zip
 ```
 
 Neural training commands will be added only when the E2 training pipeline and public-data preparation are complete; the repository does not advertise a command that cannot yet reproduce a result.

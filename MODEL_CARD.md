@@ -62,7 +62,8 @@ The design tokenizes with `bert-base-uncased`, aligns word labels to WordPieces,
 - Subword-prediction collapse: not implemented
 - Generic micro exact labeled-span scorer: implemented
 - Approved-corpus integration and per-role reporting: not implemented
-- MASC archive adapter and preparation pipeline: not implemented
+- Read-only aggregate MASC feasibility audit: implemented; dataset rejected
+- Approved-corpus adapter and preparation pipeline: not implemented
 - Training and evaluation pipeline: not implemented
 - Public training run: not started
 - Public checkpoint: none
@@ -72,7 +73,7 @@ The construction boundary returns dictionary-compatible logits and optional loss
 
 ### Planned training data
 
-No training corpus has been approved. UP 1.0 English EWT was rejected for this milestone because its dependency-head roles do not supply the required gold argument spans. The 88K-word MASC PropBank release is the next candidate, but acquisition, archive lineage, rights, pointer-to-span conversion, verbal coverage, and a document-disjoint split must pass the recorded feasibility gate before an adapter or training run begins.
+No training corpus has been approved. UP 1.0 English EWT was rejected because its dependency-head roles do not supply the required gold argument spans. The 88K-word MASC PropBank release was also rejected after a read-only audit: rights review remains incomplete, its provisional manifest is blocked at the join gate, and trace-only arguments cap optimistic exact-span conversion below the predeclared 99% threshold. Replacement-source selection is pending.
 
 Restricted OntoNotes-derived course files and checkpoints are not included or used as public evidence.
 
@@ -87,7 +88,7 @@ Restricted OntoNotes-derived course files and checkpoints are not included or us
 ### Out-of-scope uses
 
 - treating `ARG0` and `ARG1` as universal actor and patient categories;
-- treating MASC or any other candidate as approved before its documented gate passes;
+- treating either rejected source, or any future candidate, as approved without a documented gate;
 - assuming a supplied-predicate score represents raw-text end-to-end quality;
 - multilingual or cross-domain use without separate evaluation;
 - autonomous decisions in employment, credit, health, legal, safety, or other consequential settings;
@@ -107,6 +108,16 @@ Token accuracy is diagnostic only because frequent `O` labels can conceal poor a
 - **Domain shift:** require representative authorized evaluation before a deployment claim.
 - **Opaque errors:** retain source tokens, terminal-to-word mappings, labels, error categories, and—when available—character offsets for inspection.
 - **Data rights:** keep datasets outside Git and review checkpoint redistribution separately.
+
+### Known source-format gaps
+
+The MASC audit exposed three unimplemented source-format cases in the generic
+converter: two unlabeled PTB wrapper serializations, mixed semicolon/trace-chain
+pointers, and LINK anchoring that cannot be validated by exact pointer identity
+alone. These are recorded engineering gaps, not the basis for rejecting MASC;
+the corpus still misses the 99% exact-span threshold under optimistic repair.
+Future fixes require source-neutral rules and wholly invented regression
+fixtures. They must not infer controllers for trace-only arguments.
 
 ## Results statement
 

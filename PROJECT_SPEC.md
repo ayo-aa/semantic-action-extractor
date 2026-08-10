@@ -22,7 +22,7 @@ These contracts are measured separately. The first matches the original homework
 
 The original completed homework implemented predicate-conditioned BERT semantic role labeling on course-provided OntoNotes-derived data. It used `bert-base-uncased`, WordPiece/BIO alignment, a token-type predicate indicator, a linear token-classification head, full fine-tuning, and exact labeled-span scoring.
 
-This repository is rebuilding the software foundation for that method as package modules. The current implementation is incomplete: it contains source-neutral PropBank/PTB conversion, alignment, decoding, scoring, and model-construction primitives, but no public-corpus adapter, training pipeline, checkpoint, or corpus result. It does not include the course dataset, derived labels, starter materials, notebook code, checkpoint, or course examples. Results from that restricted run are not results for this repository.
+This repository is rebuilding the software foundation for that method as package modules. The current implementation is incomplete: it contains source-neutral PropBank/PTB conversion, alignment, decoding, scoring, model-construction primitives, and a read-only MASC feasibility audit, but no approved public-corpus adapter, training pipeline, checkpoint, or corpus result. It does not include the course dataset, derived labels, starter materials, notebook code, checkpoint, or course examples. Results from that restricted run are not results for this repository.
 
 ## Research question
 
@@ -78,9 +78,11 @@ source_text[start:end] == span_text
 
 ## Candidate public dataset contract
 
-No public corpus has been selected or ingested yet. Universal Proposition Bank 1.0 English EWT was reviewed and rejected for this milestone because it supplies dependency-head arguments rather than the gold argument spans required by the restored BIO contract.
+No public corpus has been approved for training. Universal Proposition Bank 1.0 English EWT was rejected because it supplies dependency-head arguments rather than the gold spans required by the restored BIO contract.
 
-The next candidate is the 88K-word MASC PropBank release in original pointer format with its referenced Penn Treebank parses. It remains behind a feasibility gate; there is no MASC archive adapter or preparation command. A source-neutral parser and fail-closed pointer-to-BIO converter now cover the documented record/tree contract with invented fixtures. Adoption still requires all of the following before corpus integration or training:
+The 88K-word MASC PropBank release was subsequently acquired into ignored local storage and audited read-only. It was rejected: G1 remains incomplete, the provisional candidate manifest does not clear G2, and trace-only arguments cap optimistic exact-span recovery below the predeclared 99% G3 threshold. There is no MASC preparation adapter, split, or training command. The completed [audit](reports/masc_propbank_audit.md) and [gate record](docs/datasets/masc_propbank_gate.md) preserve the evidence.
+
+Any replacement corpus must satisfy all of the following before integration or training:
 
 - resolve the authoritative archive, version, checksum, license, attribution, source-text lineage, and checkpoint implications;
 - verify that every included PropBank document and sentence joins to the supplied parse material;
@@ -89,7 +91,7 @@ The next candidate is the 88K-word MASC PropBank release in original pointer for
 - define explicit include, exclude, and hard-error reasons with no silent gold-label repair;
 - freeze a deterministic document-disjoint, genre-aware train/development/test manifest before inspecting model outcomes.
 
-Raw data and prepared examples stay outside Git. Only independently written adapter code, synthetic fixtures, fingerprints, aggregate counts, and approved reports may enter the repository. The full decision record is [docs/datasets/masc_propbank_gate.md](docs/datasets/masc_propbank_gate.md).
+Raw data and prepared examples stay outside Git. Only independently written adapter code, synthetic fixtures, fingerprints, aggregate counts, and approved reports may enter the repository.
 
 ## Target architecture
 
@@ -106,7 +108,7 @@ For one sentence–predicate pair:
 
 The original reproduction fully fine-tunes the encoder. The no-predicate variant is a controlled ablation, not a substitute for the reproduction.
 
-Current implementation status: classic/modern PropBank record parsing, Penn Treebank pointer resolution, fail-closed gold BIO conversion, a source-neutral word-level example contract, word/subword gold-label alignment, the first-subword predicate indicator, BERT-plus-linear-head construction, ignored-label loss, BIO repair and decoding, and generic micro exact labeled-span scoring are implemented with synthetic tests. MASC archive discovery and joins, a label-vocabulary builder, subword-prediction collapse, real-model smoke test, training loop, evaluation runner, and empirical results remain pending. Until those pieces exist, this repository is an SRL foundation rather than a usable neural pipeline.
+Current implementation status: classic/modern PropBank record parsing, Penn Treebank pointer resolution, fail-closed gold BIO conversion, a source-neutral word-level example contract, word/subword gold-label alignment, the first-subword predicate indicator, BERT-plus-linear-head construction, ignored-label loss, BIO repair and decoding, generic micro exact labeled-span scoring, and a read-only MASC archive audit are implemented with synthetic tests. Replacement-corpus selection, a label-vocabulary builder, subword-prediction collapse, real-model smoke test, training loop, evaluation runner, and empirical results remain pending. Until those pieces exist, this repository is an SRL foundation rather than a usable neural pipeline.
 
 ## Hypotheses
 
@@ -127,7 +129,7 @@ Current implementation status: classic/modern PropBank record parsing, Penn Tree
 - Implement tokenizer-independent word/subword alignment.
 - Implement predicate indicators and the BERT token-classification boundary.
 - Implement exact labeled-span decoding and scoring, excluding predicate `V` and continuation `C-V` spans.
-- Keep the implemented pointer converter source-neutral; after the source review passes, add one corpus adapter with only the joins and representations justified by that archive.
+- Keep the implemented pointer converter source-neutral; after a replacement source passes review, add one corpus adapter with only the joins and representations justified by that archive.
 - Preserve source document identifiers and either an official split or the predeclared document-disjoint manifest justified by the selected source.
 - Use only synthetic fixtures in repository tests.
 

@@ -1,6 +1,6 @@
 # MASC PropBank feasibility gate
 
-Status: **adapter-core go; corpus preparation, training, and release hold**
+Status: **MASC rejected for the fixed milestone; replacement-source decision pending**
 
 Decision date: 2026-08-09
 
@@ -14,16 +14,23 @@ The restored research claim is fixed:
 
 Universal Proposition Bank 1.0 English EWT does not satisfy that contract. Its argument annotations identify dependency heads, not full argument spans. The UP 2.0 authors explicitly state that the UP 1.0 heads are insufficient to recover spans. A dependency-subtree expansion would therefore create a different, silver-target experiment and reopen the scope fork this reconciliation is meant to close.
 
-MASC PropBank is the next candidate because the Open American National Corpus advertises an 88K-word download containing original PropBank pointer annotations together with the Penn Treebank parses they reference. Those constituent pointers can, in principle, support exact surface-span BIO labels.
+MASC PropBank was evaluated because the Open American National Corpus advertises an 88K-word download containing original PropBank pointer annotations together with the Penn Treebank parses they reference. Those constituent pointers can represent many exact surface-span BIO labels, but the archive also contains trace-only arguments with no unique overt span.
 
-This is a candidate decision, not a training-dataset adoption decision. A metadata-only range inspection read the official ZIP directory, README, and selected MASC headers; it did not acquire text, PTB, or PropBank payloads. No corpus record has been parsed, trained on, or committed.
+With explicit approval, the archive was fetched from ANC's artifact URL into ignored local storage under a documented invalid-TLS caveat and audited read-only. No corpus payload was written outside the ZIP or committed, and no training was performed. The completed [G1–G3 audit](../../reports/masc_propbank_audit.md) rejects MASC for this milestone: G2 remains on hold, and G3 has an optimistic exact-span ceiling below the predeclared 99% threshold.
+
+## Completed outcome
+
+- **G1:** incomplete. A 48-document non-WSJ manifest is source-family mapped for diagnostics only; item-level attribution and the complete archive remain on hold.
+- **G2:** hold. Two provisional-manifest documents lack PropBank layers, two more require unresolved production-parser changes, and the full archive has additional mismatches and malformed joins.
+- **G3:** fail. A 44-document diagnostic slice converts at 77.46% with the current core and has a 93.25% optimistic exact-span ceiling. A wider non-WSJ sensitivity audit independently caps exact recovery at 92.85%.
+- **G4/G5:** not started. No MASC adapter, prepared dataset, split, training run, or checkpoint was created.
 
 ## Candidate comparison
 
 | Source | Span fit | Access and rights fit | Decision |
 | --- | --- | --- | --- |
 | UP 1.0 English EWT | Dependency heads only; exact gold spans cannot be recovered | Public, but layered lineage and license signals require care | Reject for this milestone |
-| MASC-PROPBANK-ORIG | Original PropBank constituent pointers plus referenced PTB parses | MASC is advertised under CC BY 3.0 US; bundled source-family provenance still needs classification | Proceed with source-neutral adapter core; hold corpus use |
+| MASC-PROPBANK-ORIG | Original PropBank constituent pointers, but too many trace-only arguments lack unique overt spans | MASC is advertised under CC BY 3.0 US; the provisional diagnostic manifest did not complete item-level attribution | Reject for this milestone |
 | OntoNotes / CoNLL-2012 | Strong task match | Source text requires LDC access and redistribution is restricted | Do not use for the public portfolio reproduction |
 | CoNLL-2005 | Closest classic span-SRL benchmark | Depends on licensed Treebank material and is not a clean redistributable portfolio source | Do not use for the public portfolio reproduction |
 
@@ -39,7 +46,7 @@ This is a candidate decision, not a training-dataset adoption decision. A metada
 
 ## Gate sequence
 
-The gates are ordered. A failure pauses the sequence; later work does not erase an earlier failure.
+The gates are ordered. A failure pauses implementation; later evidence does not erase an earlier failure. The read-only G3 diagnostic was completed after the G2 hold only to determine whether resolving the join gaps could make MASC viable. It did not advance corpus adoption.
 
 ### G1 — rights and lineage
 
@@ -52,7 +59,7 @@ Record, from the archive and authoritative MASC documentation:
 - exclusion of every `wsj_*` item unless ANC confirms the bundled WSJ text and annotation coverage in writing;
 - publication class for each artifact: adapter code and wholly synthetic fixtures; corpus-derived examples; non-reconstructive aggregate metrics; and trained weights.
 
-The archive itself contains only a README, not a legal notice. ANC calls the selected Language Understanding subset license-free and says restricted LU texts were excluded, so an LDC reference in a header is not by itself a reason to reject a document. Conversely, lack of a `wsj_` prefix is not proof of acceptable provenance. A pinned, source-family-reviewed allowlist is the primary control; anchored `wsj_*` denial is a fail-closed backstop applied independently to all layers.
+The archive itself contains only a README, not a legal notice. ANC calls the selected Language Understanding subset license-free and says restricted LU texts were excluded, so an LDC reference in a header is not by itself a reason to reject a document. Conversely, lack of a `wsj_` prefix is not proof of acceptable provenance. A pinned source-family map controls diagnostic reads but is not rights clearance; any future use would require a completed item-level attribution manifest. Anchored `wsj_*` denial is a fail-closed backstop applied independently to all layers.
 
 Pass condition: every included layer and source family has a documented use basis and attribution plan. If trained-weight redistribution is unclear, code and aggregate results may proceed locally but checkpoint publication remains blocked.
 
@@ -86,7 +93,7 @@ The restored verbal subset is limited to predicate terminals tagged `VB`, `VBD`,
 
 Pass condition: a documented conversion policy covers every observed pointer and label pattern. At least 99% of otherwise eligible verbal instances must convert losslessly to the fixed single-label surface BIO representation. Falling below that threshold triggers a design review or candidate rejection, not a relaxed claim.
 
-### G4 — conversion verification
+### G4 — conversion verification (not reached)
 
 The conversion boundary must:
 
@@ -97,7 +104,7 @@ The conversion boundary must:
 - retain an explicit parse-terminal-to-surface-word mapping;
 - preserve exact source document, sentence, predicate, roleset, pointer, and role metadata;
 - preserve explicit continuation and reference labels rather than collapsing them into core roles, require each continuation to follow its base span, and never invent `C-*` or `R-*` labels that are absent from the source;
-- treat `LINK-*` records as metadata rather than BIO roles, require each link to share at least one source node with exactly one semantic argument, and do not infer argument spans or reference direction from a link until a corpus-specific rule is verified;
+- treat `LINK-*` records as metadata rather than BIO roles and do not infer argument spans or reference direction from a link until a source-neutral rule is verified; the audit falsified the pre-audit exact-`TreePointer` association rule, so exact pointer identity must not be used as a future validity condition;
 - keep discontinuous fragments discontinuous rather than filling their gaps;
 - produce one supplied-predicate instance per eligible verbal predicate;
 - reject the whole predicate instance when any gold argument is unresolved, overlapping, conflicting, or otherwise unrepresentable; dropping only the difficult argument would create false gold `O` labels;
@@ -105,15 +112,15 @@ The conversion boundary must:
 - close the future WordPiece label inventory under continuation tags, including `I-C-V` when a `B-C-V` word splits into multiple pieces;
 - emit deterministic BIO labels and an auditable conversion report.
 
-The current source-neutral core implements the documented record/tree parsing, pointer resolution, fail-closed conversion, unsplit prepared record, stable error reasons, default `wsj_*` denial, external source-policy hook, and wholly invented fixtures. It retains the full raw PropBank record in conversion provenance and keeps LINK semantics metadata-only. It intentionally does not implement MASC file discovery, archive joins, source-family allowlists, audit reports, or split generation.
+The current source-neutral core implements the documented record/tree parsing, pointer resolution, fail-closed conversion, unsplit prepared record, stable error reasons, default `wsj_*` denial, external source-policy hook, and wholly invented fixtures. It retains the full raw PropBank record in conversion provenance and keeps LINK semantics metadata-only. A separate read-only MASC audit inventories the ZIP and emits aggregate JSON. It writes no member payload outside the ZIP and creates no prepared examples or splits.
 
-Verification of the future MASC layer uses the existing invented fixtures plus a manually checked source sample stratified across genres and every observed pointer/operator class. Corpus examples do not enter Git.
+No future MASC conversion layer is planned under the fixed milestone. Any reconsideration would be a new decision and would use invented fixtures plus a separately approved, manually checked source sample. Corpus examples do not enter Git.
 
 Pass condition: synthetic tests pass, the manual audit finds no boundary or role mismatch, and the conversion report reconciles input, output, exclusion, and error counts.
 
-### G5 — split freeze
+### G5 — split freeze (not reached)
 
-No official MASC PropBank train/development/test split has been established. After G4 passes, commit a manifest that assigns whole documents—not sentences or predicates—to deterministic, genre-aware train, development, and test partitions.
+No official MASC PropBank train/development/test split was established. Had G4 passed, the next step would have been a manifest assigning whole documents—not sentences or predicates—to deterministic, genre-aware train, development, and test partitions.
 
 The manifest must record document ID, genre, split, source checksum, and eligible-predicate count. The allocator, seed, and target proportions are committed before the first model outcome is inspected, and only then are prepared examples converted to split-bound model records. The manifest is immutable for the declared experiment; any later split is a new experiment.
 
@@ -126,16 +133,16 @@ Allowed now:
 - this decision record and source-neutral SRL primitives;
 - synthetic tests that do not reproduce corpus text or annotations;
 - source-neutral PropBank/PTB parsing and fail-closed conversion code;
-- a local MASC audit script only after the archive schema is verified.
+- the read-only aggregate MASC audit and this negative feasibility result.
 
 Not allowed yet:
 
 - vendoring raw or processed MASC data;
-- implementing MASC filename joins or normalization assumptions about the unacquired payload;
+- building a MASC preparation adapter, split, or dataset-derived fixtures;
 - training or tuning a model;
 - publishing a dataset-derived fixture, checkpoint, or benchmark number;
 - changing the gold-span objective to make a candidate fit.
 
 ## Next checkpoint
 
-The next action is local acquisition of the official MASC-PROPBANK-ORIG archive under `data/raw/`, followed by a read-only inventory and written G1–G3 report. That action requires explicit approval because it crosses from metadata review into corpus acquisition. MASC-specific joins, normalization, and split code begin only after the report records a go decision.
+MASC reconciliation is complete. The next checkpoint is a replacement-source decision: retain exact span SRL and review another direct-span corpus, accept controlled-access data and its publication constraints, or explicitly change the research target to dependency-head SRL. No option is selected yet, and training remains blocked until a new source passes its own gate.

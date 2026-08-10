@@ -718,7 +718,9 @@ def _validate_links(record: PropBankRecord, tree: PennTree) -> None:
     chain shape, tree addresses, and association with exactly one argument,
     but does not infer a replacement span or a reference direction.  A
     corpus-specific rule may be added only after the real archive audit
-    verifies it.
+    verifies it.  The MASC audit showed that exact ``TreePointer`` identity is
+    too strict for some LINK-SLC records; this check remains fail-closed until
+    a source-neutral association rule is specified and tested.
     """
 
     for link in record.links:
