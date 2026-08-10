@@ -29,6 +29,7 @@ neural = [
 
 [project.scripts]
 semantic-action-extractor = "semantic_action_extractor.cli:main"
+semantic-action-prepare-babysrl = "semantic_action_extractor.srl.babysrl:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
